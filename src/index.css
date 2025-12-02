@@ -1,0 +1,98 @@
+@import 'tailwindcss';
+
+@theme {
+  --color-primary-50: oklch(97.3% 0.01 253);
+  --color-primary-100: oklch(94.8% 0.02 253);
+  --color-primary-200: oklch(89.7% 0.05 253);
+  --color-primary-300: oklch(81.7% 0.09 253);
+  --color-primary-400: oklch(71.2% 0.14 253);
+  --color-primary-500: oklch(60.8% 0.19 253);
+  --color-primary-600: oklch(51.8% 0.22 253);
+  --color-primary-700: oklch(44.1% 0.19 253);
+  --color-primary-800: oklch(37.1% 0.15 253);
+  --color-primary-900: oklch(31.7% 0.12 253);
+  --color-primary-950: oklch(20.5% 0.08 253);
+
+  --color-gray-50: oklch(98.3% 0.003 247);
+  --color-gray-100: oklch(96.5% 0.006 247);
+  --color-gray-200: oklch(93.2% 0.011 247);
+  --color-gray-300: oklch(87.8% 0.016 247);
+  --color-gray-400: oklch(74.4% 0.02 247);
+  --color-gray-500: oklch(62.9% 0.016 247);
+  --color-gray-600: oklch(51.1% 0.013 247);
+  --color-gray-700: oklch(42.9% 0.01 247);
+  --color-gray-800: oklch(33.2% 0.008 247);
+  --color-gray-900: oklch(27.4% 0.007 247);
+  --color-gray-950: oklch(16.5% 0.004 247);
+}
+
+:root {
+  /* Light mode colors */
+  --background: var(--color-gray-50);
+  --foreground: var(--color-gray-900);
+  --card: oklch(100% 0 0);
+  --card-foreground: var(--color-gray-900);
+  --popover: oklch(100% 0 0);
+  --popover-foreground: var(--color-gray-900);
+  --primary: var(--color-primary-600);
+  --primary-foreground: oklch(100% 0 0);
+  --secondary: var(--color-gray-200);
+  --secondary-foreground: var(--color-gray-900);
+  --muted: var(--color-gray-100);
+  --muted-foreground: var(--color-gray-600);
+  --accent: var(--color-gray-100);
+  --accent-foreground: var(--color-gray-900);
+  --destructive: oklch(58.2% 0.22 29);
+  --destructive-foreground: oklch(100% 0 0);
+  --border: var(--color-gray-300);
+  --input: var(--color-gray-300);
+  --ring: var(--color-primary-600);
+  --radius: 0.5rem;
+}
+
+.dark {
+  /* Dark mode colors */
+  --background: var(--color-gray-950);
+  --foreground: var(--color-gray-50);
+  --card: var(--color-gray-900);
+  --card-foreground: var(--color-gray-50);
+  --popover: var(--color-gray-900);
+  --popover-foreground: var(--color-gray-50);
+  --primary: var(--color-primary-500);
+  --primary-foreground: var(--color-gray-950);
+  --secondary: var(--color-gray-800);
+  --secondary-foreground: var(--color-gray-50);
+  --muted: var(--color-gray-800);
+  --muted-foreground: var(--color-gray-400);
+  --accent: var(--color-gray-800);
+  --accent-foreground: var(--color-gray-50);
+  --destructive: oklch(58.2% 0.22 29);
+  --destructive-foreground: oklch(100% 0 0);
+  --border: var(--color-gray-800);
+  --input: var(--color-gray-800);
+  --ring: var(--color-primary-500);
+}
+
+* {
+  @apply border-[color:var(--border)];
+}
+
+body {
+  @apply bg-[color:var(--background)] text-[color:var(--foreground)];
+  font-feature-settings:
+    'rlig' 1,
+    'calt' 1;
+  margin: 0;
+  font-family:
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    Roboto,
+    Oxygen,
+    Ubuntu,
+    Cantarell,
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
