@@ -22,19 +22,34 @@ export function ThemeProvider({
     return ThemeService.getStoredTheme() ?? defaultTheme;
   });
 
+  // Track system theme separately to detect changes
+  const [systemTheme, setSystemTheme] = useState<'light' | 'dark'>(() => {
+    return ThemeService.getSystemTheme();
+  });
+
   // Derive actual theme from theme preference
   const actualTheme = useMemo(() => {
-    return ThemeService.resolveTheme(theme);
-  }, [theme]);
+    if (theme === 'system') {
+      return systemTheme;
+    }
+    return theme;
+  }, [theme, systemTheme]);
 
   // Listen to system theme changes when theme is set to 'system'
   useEffect(() => {
     if (theme !== 'system') return;
 
-    return ThemeService.createSystemThemeListener(() => {
-      // Force a re-render by updating theme state
-      setThemeState('system');
+    return ThemeService.createSystemThemeListener((newSystemTheme) => {
+      // Update system theme state to trigger re-render
+      setSystemTheme(newSystemTheme);
     });
+  }, [theme]);
+
+  // Update system theme when switching to 'system' mode
+  useEffect(() => {
+    if (theme === 'system') {
+      setSystemTheme(ThemeService.getSystemTheme());
+    }
   }, [theme]);
 
   // Apply theme class to document root

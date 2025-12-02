@@ -1,16 +1,8 @@
-/**
- * Login Page
- * Feature: Auth
- * Best Practice: Uses useEffect for side effects (navigation)
- */
-
 import { useState, useEffect, useCallback } from 'react';
 import type { FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../shared/hooks/useAuth';
-import { Card } from '../../../shared/components/atoms/Card';
 import { Heading } from '../../../shared/components/atoms/Heading';
-import { Text } from '../../../shared/components/atoms/Text';
 import { Button } from '../../../shared/components/atoms/Button';
 import { FormField } from '../../../shared/components/molecules/FormField';
 
@@ -53,62 +45,31 @@ export function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-[color:var(--background)]">
-      <div className="w-full max-w-md">
-        <Card className="p-8">
-          <div className="mb-8">
-            <Heading level={1} className="mb-2">
-              Welcome Back
-            </Heading>
-            <Text variant="muted">
-              Sign in to your CRM account
-            </Text>
-          </div>
-
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {error && (
-              <div className="p-3 rounded-md bg-[color:var(--destructive)]/10 border border-[color:var(--destructive)]/20">
-                <Text size="sm" variant="destructive">
-                  {error}
-                </Text>
-              </div>
-            )}
-
-            <FormField
-              label="Email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="you@example.com"
-              disabled={isSubmitting}
-              required
-            />
-
-            <FormField
-              label="Password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
-              disabled={isSubmitting}
-              required
-            />
-
-            <Button
-              type="submit"
-              disabled={isSubmitting}
-              className="w-full"
-            >
-              {isSubmitting ? 'Signing in...' : 'Sign In'}
-            </Button>
-          </form>
-
-          <div className="mt-6 text-center">
-            <Text size="sm" variant="muted">
-              Demo: Use any email and password to login
-            </Text>
-          </div>
-        </Card>
+    <div className="relative h-screen bg-[color:var(--background)]">
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full p-8 flex flex-col md:flex-row items-center justify-center gap-8">
+        <div className="mb-6 text-center w-full md:w-80">
+          <p>logo</p>
+          <Heading level={1}>Sign in</Heading>
+        </div>
+        <form onSubmit={handleSubmit} className="space-y-4 w-full md:max-w-[600px]">
+          <FormField
+            label="Email"
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            error={error}
+          />
+          <FormField
+            label="Password"
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            error={error}
+          />
+          <Button type="submit" disabled={isSubmitting} className="w-full rounded-full">
+            {isSubmitting ? 'Signing in...' : 'Sign in'}
+          </Button>
+        </form>
       </div>
     </div>
   );

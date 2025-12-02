@@ -21,7 +21,7 @@ const DashboardPage = lazy(() =>
 // Loading fallback component
 function LoadingFallback() {
   return (
-    <div className="min-h-screen flex items-center justify-center">
+    <div className="min-h-screen flex items-center justify-center bg-[color:var(--background)]">
       <Text variant="muted">Loading...</Text>
     </div>
   );
