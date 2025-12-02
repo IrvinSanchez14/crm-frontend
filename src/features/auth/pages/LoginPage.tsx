@@ -1,11 +1,18 @@
 /**
  * Login Page
  * Feature: Auth
+ * Best Practice: Uses useEffect for side effects (navigation)
  */
 
-import { useState, FormEvent } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import type { FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../shared/hooks/useAuth';
+import { Card } from '../../../shared/components/atoms/Card';
+import { Heading } from '../../../shared/components/atoms/Heading';
+import { Text } from '../../../shared/components/atoms/Text';
+import { Button } from '../../../shared/components/atoms/Button';
+import { FormField } from '../../../shared/components/molecules/FormField';
 
 export function LoginPage() {
   const [email, setEmail] = useState('');
@@ -15,13 +22,15 @@ export function LoginPage() {
   const { login, isAuthenticated } = useAuth();
   const navigate = useNavigate();
 
-  // Redirect if already authenticated
-  if (isAuthenticated) {
-    navigate('/dashboard', { replace: true });
-    return null;
-  }
+  // Redirect if already authenticated (useEffect for side effects)
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate('/dashboard', { replace: true });
+    }
+  }, [isAuthenticated, navigate]);
 
-  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
+  // Memoize submit handler to prevent unnecessary re-renders
+  const handleSubmit = useCallback(async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError('');
     setIsSubmitting(true);
@@ -36,81 +45,70 @@ export function LoginPage() {
     } finally {
       setIsSubmitting(false);
     }
-  };
+  }, [email, password, login, navigate]);
+
+  // Don't render if already authenticated (handled by useEffect)
+  if (isAuthenticated) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-[color:var(--background)]">
       <div className="w-full max-w-md">
-        <div className="bg-[color:var(--card)] p-8 rounded-lg shadow-sm border border-[color:var(--border)]">
+        <Card className="p-8">
           <div className="mb-8">
-            <h1 className="text-3xl font-bold text-[color:var(--foreground)] mb-2">
+            <Heading level={1} className="mb-2">
               Welcome Back
-            </h1>
-            <p className="text-[color:var(--muted-foreground)]">
+            </Heading>
+            <Text variant="muted">
               Sign in to your CRM account
-            </p>
+            </Text>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
             {error && (
               <div className="p-3 rounded-md bg-[color:var(--destructive)]/10 border border-[color:var(--destructive)]/20">
-                <p className="text-sm text-[color:var(--destructive)]">
+                <Text size="sm" variant="destructive">
                   {error}
-                </p>
+                </Text>
               </div>
             )}
 
-            <div>
-              <label
-                htmlFor="email"
-                className="block text-sm font-medium text-[color:var(--foreground)] mb-2"
-              >
-                Email
-              </label>
-              <input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                className="w-full px-4 py-2 rounded-md border border-[color:var(--input)] bg-[color:var(--background)] text-[color:var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[color:var(--ring)] focus:border-transparent"
-                placeholder="you@example.com"
-                disabled={isSubmitting}
-              />
-            </div>
+            <FormField
+              label="Email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="you@example.com"
+              disabled={isSubmitting}
+              required
+            />
 
-            <div>
-              <label
-                htmlFor="password"
-                className="block text-sm font-medium text-[color:var(--foreground)] mb-2"
-              >
-                Password
-              </label>
-              <input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                className="w-full px-4 py-2 rounded-md border border-[color:var(--input)] bg-[color:var(--background)] text-[color:var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[color:var(--ring)] focus:border-transparent"
-                placeholder="••••••••"
-                disabled={isSubmitting}
-              />
-            </div>
+            <FormField
+              label="Password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="••••••••"
+              disabled={isSubmitting}
+              required
+            />
 
-            <button
+            <Button
               type="submit"
               disabled={isSubmitting}
-              className="w-full py-2 px-4 rounded-md bg-[color:var(--primary)] text-[color:var(--primary-foreground)] font-medium hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-[color:var(--ring)] focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity"
+              className="w-full"
             >
               {isSubmitting ? 'Signing in...' : 'Sign In'}
-            </button>
+            </Button>
           </form>
 
-          <div className="mt-6 text-center text-sm text-[color:var(--muted-foreground)]">
-            <p>Demo: Use any email and password to login</p>
+          <div className="mt-6 text-center">
+            <Text size="sm" variant="muted">
+              Demo: Use any email and password to login
+            </Text>
           </div>
-        </div>
+        </Card>
       </div>
     </div>
   );

@@ -1,93 +1,95 @@
 /**
  * Dashboard Page
  * Feature: Dashboard
+ * Performance: Uses useCallback for event handlers
  */
 
+import { useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ThemeToggle } from '../../../shared/components/ThemeToggle';
+import { ThemeToggle } from '../../../shared/components/organisms/ThemeToggle';
 import { useAuth } from '../../../shared/hooks/useAuth';
+import { Heading } from '../../../shared/components/atoms/Heading';
+import { Text } from '../../../shared/components/atoms/Text';
+import { Card } from '../../../shared/components/atoms/Card';
+import { Button } from '../../../shared/components/atoms/Button';
 
 export function DashboardPage() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
-  const handleLogout = () => {
+  // Memoize logout handler to prevent unnecessary re-renders
+  const handleLogout = useCallback(() => {
     logout();
     navigate('/login', { replace: true });
-  };
+  }, [logout, navigate]);
 
   return (
     <div className="min-h-screen p-8">
       <div className="max-w-7xl mx-auto">
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-4xl font-bold text-[color:var(--foreground)]">
-              CRM Dashboard
-            </h1>
+            <Heading level={1}>CRM Dashboard</Heading>
             {user && (
-              <p className="text-sm text-[color:var(--muted-foreground)] mt-1">
+              <Text size="sm" variant="muted" className="mt-1">
                 Welcome, {user.name}
-              </p>
+              </Text>
             )}
           </div>
           <div className="flex items-center gap-4">
             <ThemeToggle />
-            <button
-              onClick={handleLogout}
-              className="px-4 py-2 text-sm font-medium text-[color:var(--foreground)] hover:bg-[color:var(--accent)] rounded-md transition-colors"
-            >
+            <Button variant="ghost" onClick={handleLogout}>
               Logout
-            </button>
+            </Button>
           </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {/* Stats Cards */}
-          <div className="bg-[color:var(--card)] p-6 rounded-lg shadow-sm border border-[color:var(--border)]">
-            <h3 className="text-sm font-medium text-[color:var(--muted-foreground)] mb-2">
+          <Card className="p-6">
+            <Text size="sm" variant="muted" className="mb-2 font-medium">
               Total Customers
-            </h3>
-            <p className="text-3xl font-bold text-[color:var(--foreground)]">
+            </Text>
+            <Heading level={1} className="text-3xl mb-2">
               1,234
-            </p>
-            <p className="text-sm text-[color:var(--muted-foreground)] mt-2">
+            </Heading>
+            <Text size="sm" variant="muted" className="mt-2">
               +12% from last month
-            </p>
-          </div>
+            </Text>
+          </Card>
 
-          <div className="bg-[color:var(--card)] p-6 rounded-lg shadow-sm border border-[color:var(--border)]">
-            <h3 className="text-sm font-medium text-[color:var(--muted-foreground)] mb-2">
+          <Card className="p-6">
+            <Text size="sm" variant="muted" className="mb-2 font-medium">
               Active Deals
-            </h3>
-            <p className="text-3xl font-bold text-[color:var(--foreground)]">
+            </Text>
+            <Heading level={1} className="text-3xl mb-2">
               87
-            </p>
-            <p className="text-sm text-[color:var(--muted-foreground)] mt-2">
+            </Heading>
+            <Text size="sm" variant="muted" className="mt-2">
               +5% from last month
-            </p>
-          </div>
+            </Text>
+          </Card>
 
-          <div className="bg-[color:var(--card)] p-6 rounded-lg shadow-sm border border-[color:var(--border)]">
-            <h3 className="text-sm font-medium text-[color:var(--muted-foreground)] mb-2">
+          <Card className="p-6">
+            <Text size="sm" variant="muted" className="mb-2 font-medium">
               Revenue
-            </h3>
-            <p className="text-3xl font-bold text-[color:var(--foreground)]">
+            </Text>
+            <Heading level={1} className="text-3xl mb-2">
               $45,678
-            </p>
-            <p className="text-sm text-[color:var(--muted-foreground)] mt-2">
+            </Heading>
+            <Text size="sm" variant="muted" className="mt-2">
               +23% from last month
-            </p>
-          </div>
+            </Text>
+          </Card>
         </div>
 
-        <div className="mt-8 bg-[color:var(--card)] p-6 rounded-lg shadow-sm border border-[color:var(--border)]">
-          <h2 className="text-2xl font-semibold text-[color:var(--foreground)] mb-4">
+        <Card className="mt-8 p-6">
+          <Heading level={2} className="mb-4">
             Recent Activity
-          </h2>
-          <p className="text-[color:var(--muted-foreground)]">
+          </Heading>
+          <Text variant="muted">
             Your CRM dashboard with dark/light mode support is ready!
-          </p>
-        </div>
+          </Text>
+        </Card>
       </div>
     </div>
   );

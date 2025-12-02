@@ -1,10 +1,11 @@
 /**
- * Protected Route Component
- * Redirects unauthenticated users to login page
+ * ProtectedRoute Organism
+ * Route protection component with loading state
  */
 
 import { Navigate } from 'react-router-dom';
-import { useAuth } from '../hooks/useAuth';
+import { useAuth } from '../../../hooks/useAuth';
+import { Text } from '../../atoms/Text';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -16,7 +17,7 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-[color:var(--muted-foreground)]">Loading...</div>
+        <Text variant="muted">Loading...</Text>
       </div>
     );
   }

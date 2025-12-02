@@ -4,7 +4,7 @@
  * Dependency Inversion: Depends on AuthService abstraction
  */
 
-import { useEffect, useState, useMemo, type ReactNode } from 'react';
+import { useEffect, useState, useMemo, useCallback, type ReactNode } from 'react';
 import type { AuthContextValue } from '../../core/domain/auth.types';
 import { AuthService } from '../../core/services/auth.service';
 import { AuthContext } from './AuthContext';
@@ -28,7 +28,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
     setIsLoading(false);
   }, []);
 
-  const login = async (email: string, password: string): Promise<void> => {
+  // Memoize login function to prevent unnecessary re-renders
+  const login = useCallback(async (email: string, password: string): Promise<void> => {
     setIsLoading(true);
     try {
       const userData = await AuthService.login(email, password);
@@ -39,15 +40,18 @@ export function AuthProvider({ children }: AuthProviderProps) {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
-  const logout = (): void => {
+  // Memoize logout function to prevent unnecessary re-renders
+  const logout = useCallback((): void => {
     setUser(null);
     AuthService.clearStoredUser();
-  };
+  }, []);
 
-  const isAuthenticated = user !== null;
+  // Memoize computed value
+  const isAuthenticated = useMemo(() => user !== null, [user]);
 
+  // Memoize context value with all dependencies including stable functions
   const value = useMemo<AuthContextValue>(
     () => ({
       user,
@@ -56,7 +60,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       login,
       logout,
     }),
-    [user, isAuthenticated, isLoading]
+    [user, isAuthenticated, isLoading, login, logout]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

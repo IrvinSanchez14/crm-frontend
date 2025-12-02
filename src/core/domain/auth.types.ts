@@ -1,7 +1,3 @@
-/**
- * Auth Domain Types
- * Core domain models for authentication
- */
 
 export interface User {
   id: string;
