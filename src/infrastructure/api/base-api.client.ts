@@ -28,8 +28,8 @@ export class ApiError extends Error {
 }
 
 export class BaseApiClient {
-  private baseURL: string;
-  private defaultHeaders: Record<string, string>;
+  protected baseURL: string;
+  protected defaultHeaders: Record<string, string>;
 
   constructor(config: ApiConfig) {
     this.baseURL = config.baseURL;
@@ -37,6 +37,13 @@ export class BaseApiClient {
       'Content-Type': 'application/json',
       ...config.headers,
     };
+  }
+
+  /**
+   * Gets default headers (for use in subclasses)
+   */
+  protected getDefaultHeaders(): Record<string, string> {
+    return { ...this.defaultHeaders };
   }
 
   /**
@@ -94,8 +101,9 @@ export class BaseApiClient {
 
   /**
    * Core request method
+   * Protected to allow extension in subclasses
    */
-  private async request<T>(
+  protected async request<T>(
     method: string,
     endpoint: string,
     data?: unknown,
@@ -113,15 +121,36 @@ export class BaseApiClient {
         body: data ? JSON.stringify(data) : undefined,
       });
 
+      // Read response text first (can only read once)
+      const responseText = await response.text();
+
       if (!response.ok) {
+        // Try to extract error message from response body
+        let errorMessage = `Request failed: ${method} ${endpoint}`;
+        try {
+          const errorData = JSON.parse(responseText);
+          // FastAPI typically returns errors in { "detail": "message" } format
+          if (errorData.detail) {
+            errorMessage = errorData.detail;
+          } else if (errorData.message) {
+            errorMessage = errorData.message;
+          } else if (typeof errorData === 'string') {
+            errorMessage = errorData;
+          }
+        } catch {
+          // If response is not JSON, use status text or response text
+          errorMessage = response.statusText || responseText || errorMessage;
+        }
+
         throw new ApiError(
           response.status,
           response.statusText,
-          `Request failed: ${method} ${endpoint}`
+          errorMessage
         );
       }
 
-      const responseData = await response.json();
+      // Parse successful response as JSON
+      const responseData = responseText ? JSON.parse(responseText) : ({} as T);
 
       return {
         data: responseData,

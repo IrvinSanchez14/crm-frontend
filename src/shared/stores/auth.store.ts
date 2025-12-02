@@ -38,6 +38,7 @@ export const useAuthStore = create<AuthState>()(
       },
 
       logout: () => {
+        AuthService.clearStoredUser();
         set({
           user: null,
         });

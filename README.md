@@ -18,6 +18,16 @@ A production-ready CRM frontend built with React, TypeScript, and Vite, followin
 ### Prerequisites
 
 - Node.js 18+ and npm
+- Backend API running (canas-construction) - default: `http://localhost:8000`
+
+### Environment Variables
+
+Create a `.env` file in the root directory (optional):
+
+```bash
+# API Base URL (defaults to http://localhost:8000/api/v1)
+VITE_API_BASE_URL=http://localhost:8000/api/v1
+```
 
 ### Installation
 

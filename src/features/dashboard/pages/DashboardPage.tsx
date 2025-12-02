@@ -1,8 +1,4 @@
-/**
- * Dashboard Page
- * Feature: Dashboard
- * Performance: Uses useCallback for event handlers
- */
+
 
 import { useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
