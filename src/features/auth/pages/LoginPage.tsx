@@ -48,7 +48,6 @@ export function LoginPage() {
     <div className="relative h-screen bg-[color:var(--background)]">
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full p-8 flex flex-col md:flex-row items-center justify-center gap-8">
         <div className="mb-6 text-center w-full md:w-80">
-          <p>logo</p>
           <Heading level={1}>Sign in</Heading>
         </div>
         <form onSubmit={handleSubmit} className="space-y-4 w-full md:max-w-[600px]">
@@ -66,8 +65,39 @@ export function LoginPage() {
             onChange={(e) => setPassword(e.target.value)}
             error={error}
           />
-          <Button type="submit" disabled={isSubmitting} className="w-full rounded-full">
-            {isSubmitting ? 'Signing in...' : 'Sign in'}
+          <Button
+            type="submit"
+            disabled={isSubmitting}
+            variant="ghost"
+            className="w-full h-10 rounded-full bg-[rgba(0,0,0,0.0775)] dark:bg-[rgba(255,255,255,0.0775)] hover:bg-[rgba(0,0,0,0.2)] dark:hover:bg-[rgba(255,255,255,0.2)]"
+          >
+            {isSubmitting ? (
+              <span className="flex items-center justify-center gap-1.5">
+                <span
+                  className="h-2 w-2 rounded-full bg-current"
+                  style={{
+                    animation: 'dot-bounce 1.4s ease-in-out infinite',
+                    animationDelay: '0s',
+                  }}
+                />
+                <span
+                  className="h-2 w-2 rounded-full bg-current"
+                  style={{
+                    animation: 'dot-bounce 1.4s ease-in-out infinite',
+                    animationDelay: '0.2s',
+                  }}
+                />
+                <span
+                  className="h-2 w-2 rounded-full bg-current"
+                  style={{
+                    animation: 'dot-bounce 1.4s ease-in-out infinite',
+                    animationDelay: '0.4s',
+                  }}
+                />
+              </span>
+            ) : (
+              'Sign in'
+            )}
           </Button>
         </form>
       </div>

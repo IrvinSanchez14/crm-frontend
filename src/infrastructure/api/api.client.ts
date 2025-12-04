@@ -31,13 +31,11 @@ export class ApiClient extends BaseApiClient {
   private refreshPromise: Promise<TokenResponse> | null = null;
   private requestInterceptors: RequestInterceptor[] = [];
   private responseInterceptors: ResponseInterceptor[] = [];
-  private baseURL: string;
 
   constructor() {
     super({
       baseURL: API_BASE_URL,
     });
-    this.baseURL = API_BASE_URL;
 
     // Initialize token from storage if available
     const tokens = TokenService.getStoredTokens();
@@ -251,6 +249,93 @@ export class ApiClient extends BaseApiClient {
   }
 }
 
+/**
+ * Client interfaces
+ */
+export interface Client {
+  id: string;
+  name: string;
+  email: string | null;
+  phone: string | null;
+  company_id: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ClientsListParams {
+  company_id: string;
+  skip?: number;
+  limit?: number;
+  include_projects?: boolean;
+}
+
 // Export singleton instance
 export const apiClient = new ApiClient();
+
+/**
+ * Client creation interface
+ */
+export interface ClientCreate {
+  name: string;
+  email?: string;
+  phone?: string;
+  company_id: string;
+}
+
+/**
+ * Clients API methods
+ */
+export async function getClients(params: ClientsListParams): Promise<Client[]> {
+  const { company_id, skip = 0, limit = 100, include_projects = false } = params;
+  const queryParams = new URLSearchParams({
+    company_id,
+    skip: skip.toString(),
+    limit: limit.toString(),
+    include_projects: include_projects.toString(),
+  });
+  
+  const response = await apiClient.get<Client[]>(`/clients?${queryParams.toString()}`);
+  return response.data;
+}
+
+export async function createClient(clientData: ClientCreate): Promise<Client> {
+  const response = await apiClient.post<Client, ClientCreate>('/clients/', clientData);
+  return response.data;
+}
+
+/**
+ * User interfaces
+ */
+export interface User {
+  id: string;
+  email: string;
+  username: string;
+  first_name: string;
+  last_name: string;
+  phone: string | null;
+  company_id: string;
+  is_active: boolean;
+  is_superuser: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface UserCreate {
+  email: string;
+  username: string;
+  password: string;
+  first_name: string;
+  last_name: string;
+  phone?: string;
+  company_id: string;
+  role_ids?: string[];
+}
+
+/**
+ * Users API methods
+ */
+export async function createUser(userData: UserCreate): Promise<User> {
+  const response = await apiClient.post<User, UserCreate>('/users/', userData);
+  return response.data;
+}
 

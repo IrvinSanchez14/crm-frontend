@@ -25,6 +25,7 @@
   --color-gray-800: oklch(33.2% 0.008 247);
   --color-gray-900: oklch(27.4% 0.007 247);
   --color-gray-950: oklch(16.5% 0.004 247);
+  --color-black: oklch(0% 0 0);
 }
 
 :root {
@@ -109,4 +110,15 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+@keyframes dot-bounce {
+  0%, 80%, 100% {
+    transform: translateY(0);
+    opacity: 0.7;
+  }
+  40% {
+    transform: translateY(-8px);
+    opacity: 1;
+  }
 }

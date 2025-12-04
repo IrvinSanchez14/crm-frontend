@@ -17,6 +17,9 @@ const LoginPage = lazy(() =>
 const DashboardPage = lazy(() => 
   import('./features/dashboard').then((module) => ({ default: module.DashboardPage }))
 );
+const ClientsPage = lazy(() => 
+  import('./features/clients').then((module) => ({ default: module.ClientsPage }))
+);
 
 // Loading fallback component
 function LoadingFallback() {
@@ -43,6 +46,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <DashboardPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/clients"
+            element={
+              <ProtectedRoute>
+                <ClientsPage />
               </ProtectedRoute>
             }
           />
