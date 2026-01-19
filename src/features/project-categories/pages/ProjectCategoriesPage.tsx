@@ -9,19 +9,22 @@ import { Heading } from '../../../shared/components/atoms/Heading';
 import { Text } from '../../../shared/components/atoms/Text';
 import { Button } from '../../../shared/components/atoms/Button';
 import { cn } from '../../../core/utils/cn';
-import { getClients, type Client } from '../../../infrastructure/api/api.client';
+import { 
+  getProjectCategories,
+  type ProjectCategory
+} from '../../../infrastructure/api/api.client';
 import { decodeJwt } from '../../../core/utils/jwt.utils';
-import { CreateClientForm } from '../components/CreateClientForm';
+import { CreateProjectCategoryForm } from '../components/CreateProjectCategoryForm';
 
-export function ClientsPage() {
+export function ProjectCategoriesPage() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isRightSidebarOpen, setIsRightSidebarOpen] = useState(false);
-  const [clients, setClients] = useState<Client[]>([]);
+  const [categories, setCategories] = useState<ProjectCategory[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedClients, setSelectedClients] = useState<Set<string>>(new Set());
+  const [selectedCategories, setSelectedCategories] = useState<Set<string>>(new Set());
 
   // Get company_id from JWT token
   const getCompanyId = useCallback((): string | null => {
@@ -30,8 +33,8 @@ export function ClientsPage() {
     return payload?.company_id || null;
   }, [user]);
 
-  // Fetch clients function
-  const fetchClients = useCallback(async () => {
+  // Fetch categories function
+  const fetchCategories = useCallback(async () => {
     const companyId = getCompanyId();
     if (!companyId) {
       setError('Company ID not found. Please log in again.');
@@ -42,23 +45,24 @@ export function ClientsPage() {
     try {
       setLoading(true);
       setError(null);
-      const data = await getClients({
+      const data = await getProjectCategories({
         company_id: companyId,
         skip: 0,
-        limit: 100,
+        limit: 1000,
+        active_only: false,
       });
-      setClients(data);
+      setCategories(data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load clients');
+      setError(err instanceof Error ? err.message : 'Failed to load categories');
     } finally {
       setLoading(false);
     }
   }, [getCompanyId]);
 
-  // Fetch clients on mount
+  // Fetch categories on mount
   useEffect(() => {
-    fetchClients();
-  }, [fetchClients]);
+    fetchCategories();
+  }, [fetchCategories]);
 
   // Memoize logout handler to prevent unnecessary re-renders
   const handleLogout = useCallback(() => {
@@ -84,13 +88,12 @@ export function ClientsPage() {
     setIsRightSidebarOpen(false);
   }, []);
 
-  // Handle successful client creation
-  const handleClientCreated = useCallback(() => {
+  // Handle successful category creation
+  const handleCategoryCreated = useCallback(() => {
     closeRightSidebar();
-    // Refresh clients list
-    fetchClients();
-  }, [closeRightSidebar, fetchClients]);
-
+    // Refresh categories list
+    fetchCategories();
+  }, [closeRightSidebar, fetchCategories]);
 
   // Format date
   const formatDate = useCallback((dateString: string) => {
@@ -103,59 +106,64 @@ export function ClientsPage() {
   }, []);
 
   // Define table columns
-  const columns: TableColumn<Client>[] = useMemo(
+  const columns: TableColumn<ProjectCategory>[] = useMemo(
     () => [
       {
         key: 'name',
-        label: 'Client Name',
-        span: 3,
-      },
-      {
-        key: 'email',
-        label: 'Email',
-        span: 3,
-        render: (client, _isSelected) => (
-          <Text
-            size="sm"
-            className={cn(
-              'truncate',
-              'font-normal text-gray-700 dark:text-gray-300'
+        label: 'Name',
+        span: 4,
+        render: (category, isSelected) => (
+          <div className="flex items-center gap-2">
+            <Text
+              size="sm"
+              className={cn(
+                'truncate',
+                isSelected ? 'font-semibold dark:text-gray-100' : 'font-normal dark:text-gray-200',
+                '[color:color-mix(in_oklab,var(--color-black)_100%,transparent)]'
+              )}
+            >
+              {category.name}
+            </Text>
+            {!category.is_active && (
+              <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400">
+                Inactive
+              </span>
             )}
-          >
-            {client.email || <span className="text-gray-400 dark:text-gray-500">—</span>}
-          </Text>
+          </div>
         ),
       },
       {
-        key: 'phone',
-        label: 'Phone',
-        span: 2,
-        render: (client, _isSelected) => (
+        key: 'description',
+        label: 'Description',
+        span: 5,
+        render: (category, _isSelected) => (
           <Text
             size="sm"
             className={cn(
               'truncate',
-              'font-normal text-gray-700 dark:text-gray-300'
+              'dark:text-gray-300',
+              '[color:color-mix(in_oklab,var(--color-black)_100%,transparent)]'
             )}
           >
-            {client.phone || <span className="text-gray-400 dark:text-gray-500">—</span>}
+            {category.description || <span className="text-gray-400 dark:text-gray-500">—</span>}
           </Text>
         ),
       },
       {
         key: 'created_at',
         label: 'Created',
-        span: 4,
+        span: 3,
         align: 'right',
-        render: (client, _isSelected) => (
+        render: (category, _isSelected) => (
           <Text
             size="sm"
             className={cn(
               'truncate',
-              'font-normal text-gray-700 dark:text-gray-300'
+              'dark:text-gray-300',
+              '[color:color-mix(in_oklab,var(--color-black)_100%,transparent)]'
             )}
           >
-            {formatDate(client.created_at)}
+            {formatDate(category.created_at)}
           </Text>
         ),
       },
@@ -180,7 +188,7 @@ export function ClientsPage() {
         )}
       >
         <div className="mb-4 flex items-center justify-between px-4">
-          <Heading level={1}>Clients</Heading>
+          <Heading level={1}>Project Categories</Heading>
           <Button
             onClick={openRightSidebar}
             variant="ghost"
@@ -208,35 +216,35 @@ export function ClientsPage() {
         {/* Gmail-like Table Component */}
         <Table
           columns={columns}
-          data={clients}
-          getRowId={(client) => client.id}
+          data={categories}
+          getRowId={(category) => category.id}
           loading={loading}
           error={error}
-          emptyMessage="No clients found"
-          selectedRows={selectedClients}
-          onSelectionChange={setSelectedClients}
+          emptyMessage="No categories found"
+          selectedRows={selectedCategories}
+          onSelectionChange={setSelectedCategories}
           selectable={true}
         />
 
         {/* Footer Info */}
-        {!loading && !error && clients.length > 0 && (
-          <div className="mt-4 flex items-center justify-between">
+        {!loading && !error && categories.length > 0 && (
+          <div className="mt-4 flex items-center justify-between px-4">
             <Text size="sm" variant="muted">
-              {selectedClients.size > 0
-                ? `${selectedClients.size} of ${clients.length} selected`
-                : `${clients.length} client${clients.length !== 1 ? 's' : ''}`}
+              {selectedCategories.size > 0
+                ? `${selectedCategories.size} of ${categories.length} selected`
+                : `${categories.length} categor${categories.length !== 1 ? 'ies' : 'y'}`}
             </Text>
           </div>
         )}
       </div>
 
-      {/* Right Sidebar for Client Creation */}
+      {/* Right Sidebar for Category Creation */}
       <RightSidebar
         isOpen={isRightSidebarOpen}
         onClose={closeRightSidebar}
-        title="Create Client"
+        title="Create Category"
       >
-        <CreateClientForm onSuccess={handleClientCreated} onCancel={closeRightSidebar} />
+        <CreateProjectCategoryForm onSuccess={handleCategoryCreated} onCancel={closeRightSidebar} />
       </RightSidebar>
     </div>
   );

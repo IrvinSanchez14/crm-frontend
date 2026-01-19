@@ -51,19 +51,24 @@ export function LoginPage() {
           <Heading level={1}>Sign in</Heading>
         </div>
         <form onSubmit={handleSubmit} className="space-y-4 w-full md:max-w-[600px]">
+          {error && (
+            <div className="p-3 bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200 rounded-lg text-sm">
+              {error}
+            </div>
+          )}
           <FormField
             label="Email"
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            error={error}
+            required
           />
           <FormField
             label="Password"
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            error={error}
+            required
           />
           <Button
             type="submit"

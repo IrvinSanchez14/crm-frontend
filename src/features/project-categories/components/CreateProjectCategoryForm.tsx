@@ -1,28 +1,29 @@
 /**
- * Create Client Form Component
- * Form for creating a new client in the CRM system
+ * Create Project Category Form Component
+ * Form for creating a new project category in the CRM system
  */
 
 import { useState, type FormEvent } from 'react';
 import { FormField } from '../../../shared/components/molecules/FormField';
 import { Button } from '../../../shared/components/atoms/Button';
-import { createClient, type ClientCreate } from '../../../infrastructure/api/api.client';
+import { Label } from '../../../shared/components/atoms/Label/Label';
+import { createProjectCategory, type ProjectCategoryCreate } from '../../../infrastructure/api/api.client';
 import { decodeJwt } from '../../../core/utils/jwt.utils';
 import { useAuth } from '../../../shared/hooks/useAuth';
 
-export interface CreateClientFormProps {
+export interface CreateProjectCategoryFormProps {
   onSuccess?: () => void;
   onCancel: () => void;
 }
 
-export function CreateClientForm({ onSuccess, onCancel }: CreateClientFormProps) {
+export function CreateProjectCategoryForm({ onSuccess, onCancel }: CreateProjectCategoryFormProps) {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [formData, setFormData] = useState<Omit<ClientCreate, 'company_id'>>({
+  const [formData, setFormData] = useState<Omit<ProjectCategoryCreate, 'company_id'>>({
     name: '',
-    email: '',
-    phone: '',
+    description: '',
+    is_active: true,
   });
 
   // Get company_id from JWT token
@@ -33,9 +34,10 @@ export function CreateClientForm({ onSuccess, onCancel }: CreateClientFormProps)
   };
 
   const handleChange = (field: keyof typeof formData) => (
-    e: React.ChangeEvent<HTMLInputElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
-    setFormData((prev) => ({ ...prev, [field]: e.target.value }));
+    const value = e.target.type === 'checkbox' ? (e.target as HTMLInputElement).checked : e.target.value;
+    setFormData((prev) => ({ ...prev, [field]: value }));
     // Clear error when user starts typing
     if (error) setError(null);
   };
@@ -52,33 +54,33 @@ export function CreateClientForm({ onSuccess, onCancel }: CreateClientFormProps)
 
     // Validate required fields
     if (!formData.name.trim()) {
-      setError('Please enter a client name.');
+      setError('Please enter a category name.');
       return;
     }
 
     try {
       setLoading(true);
-      const clientData: ClientCreate = {
+      const categoryData: ProjectCategoryCreate = {
         name: formData.name.trim(),
+        description: formData.description?.trim() || undefined,
+        is_active: formData.is_active ?? true,
         company_id: companyId,
-        email: formData.email?.trim() || undefined,
-        phone: formData.phone?.trim() || undefined,
       };
 
-      await createClient(clientData);
+      await createProjectCategory(categoryData);
       
       // Reset form
       setFormData({
         name: '',
-        email: '',
-        phone: '',
+        description: '',
+        is_active: true,
       });
 
       if (onSuccess) {
         onSuccess();
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create client. Please try again.');
+      setError(err instanceof Error ? err.message : 'Failed to create category. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -95,32 +97,41 @@ export function CreateClientForm({ onSuccess, onCancel }: CreateClientFormProps)
         )}
 
         <FormField
-          label="Name *"
+          label="Category Name *"
           type="text"
           value={formData.name}
           onChange={handleChange('name')}
           required
           disabled={loading}
-          placeholder="Client name"
+          placeholder="e.g., Kitchen, Bathroom, Outside"
         />
 
-        <FormField
-          label="Email"
-          type="email"
-          value={formData.email}
-          onChange={handleChange('email')}
-          disabled={loading}
-          placeholder="client@example.com"
-        />
+        <div className="space-y-2">
+          <Label htmlFor="description">Description</Label>
+          <textarea
+            id="description"
+            value={formData.description}
+            onChange={handleChange('description')}
+            disabled={loading}
+            rows={3}
+            placeholder="Optional description for this category"
+            className="w-full px-3 py-2 border border-[color:var(--border)] rounded-lg bg-[color:var(--background)] text-[color:var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[color:var(--primary)] resize-none"
+          />
+        </div>
 
-        <FormField
-          label="Phone"
-          type="tel"
-          value={formData.phone}
-          onChange={handleChange('phone')}
-          disabled={loading}
-          placeholder="555-1234"
-        />
+        <div className="flex items-center gap-3">
+          <input
+            type="checkbox"
+            id="is_active"
+            checked={formData.is_active}
+            onChange={handleChange('is_active')}
+            disabled={loading}
+            className="w-4 h-4 rounded border-[color:var(--border)] text-[color:var(--primary)] focus:ring-[color:var(--primary)]"
+          />
+          <Label htmlFor="is_active" className="cursor-pointer">
+            Active (categories can be used in projects)
+          </Label>
+        </div>
       </div>
 
       {/* Footer with buttons */}

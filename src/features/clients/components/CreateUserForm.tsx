@@ -3,7 +3,7 @@
  * Form for creating a new user in the CRM system
  */
 
-import { useState, FormEvent } from 'react';
+import { useState, type FormEvent } from 'react';
 import { FormField } from '../../../shared/components/molecules/FormField';
 import { Button } from '../../../shared/components/atoms/Button';
 import { createUser, type UserCreate } from '../../../infrastructure/api/api.client';

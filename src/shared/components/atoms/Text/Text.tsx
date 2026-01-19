@@ -12,7 +12,7 @@ export interface TextProps extends HTMLAttributes<HTMLParagraphElement> {
   size?: 'sm' | 'md' | 'lg';
 }
 
-export const Text = forwardRef<HTMLParagraphElement, TextProps>(
+const TextComponent = forwardRef<HTMLParagraphElement, TextProps>(
   ({ className, variant = 'default', size = 'md', ...props }, ref) => {
     const variants = {
       default: 'text-[color:var(--foreground)]',
@@ -36,5 +36,7 @@ export const Text = forwardRef<HTMLParagraphElement, TextProps>(
   }
 );
 
-Text.displayName = 'Text';
+TextComponent.displayName = 'Text';
+
+export const Text = TextComponent;
 

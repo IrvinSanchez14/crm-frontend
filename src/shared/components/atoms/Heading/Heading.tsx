@@ -10,11 +10,14 @@ import { cn } from '../../../../core/utils/cn';
 export interface HeadingProps extends HTMLAttributes<HTMLHeadingElement> {
   as?: 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
   level?: 1 | 2 | 3 | 4 | 5 | 6;
+  variant?: 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
 }
 
 export const Heading = forwardRef<HTMLHeadingElement, HeadingProps>(
-  ({ as, level = 1, className, children, ...props }, ref) => {
-    const Component = (as || `h${level}`) as 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
+  ({ as, level, variant, className, children, ...props }, ref) => {
+    // Support both 'level' and 'variant' props for backward compatibility
+    const headingLevel = level || (variant ? parseInt(variant.replace('h', '')) : 1) as 1 | 2 | 3 | 4 | 5 | 6;
+    const Component = (as || `h${headingLevel}`) as 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
     
     const sizeClasses = {
       1: 'text-4xl font-bold',
@@ -30,7 +33,7 @@ export const Heading = forwardRef<HTMLHeadingElement, HeadingProps>(
         ref={ref}
         className={cn(
           'text-[color:var(--foreground)]',
-          sizeClasses[level],
+          sizeClasses[headingLevel],
           className
         )}
         {...props}

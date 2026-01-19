@@ -20,6 +20,18 @@ const DashboardPage = lazy(() =>
 const ClientsPage = lazy(() => 
   import('./features/clients').then((module) => ({ default: module.ClientsPage }))
 );
+const ProjectsPage = lazy(() => 
+  import('./features/projects').then((module) => ({ default: module.ProjectsPage }))
+);
+const ProjectCategoriesPage = lazy(() => 
+  import('./features/project-categories').then((module) => ({ default: module.ProjectCategoriesPage }))
+);
+const VisitsPage = lazy(() => 
+  import('./features/visits').then((module) => ({ default: module.VisitsPage }))
+);
+const BudgetsListPage = lazy(() => 
+  import('./features/budgets').then((module) => ({ default: module.BudgetsListPage }))
+);
 
 // Loading fallback component
 function LoadingFallback() {
@@ -54,6 +66,38 @@ function App() {
             element={
               <ProtectedRoute>
                 <ClientsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/projects"
+            element={
+              <ProtectedRoute>
+                <ProjectsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/project-categories"
+            element={
+              <ProtectedRoute>
+                <ProjectCategoriesPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/visits"
+            element={
+              <ProtectedRoute>
+                <VisitsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/budgets"
+            element={
+              <ProtectedRoute>
+                <BudgetsListPage />
               </ProtectedRoute>
             }
           />

@@ -13,7 +13,7 @@ export function Table<T>({
   onRowClick,
   selectedRows = new Set(),
   onSelectionChange,
-  selectable = true,
+  selectable = false,
   className,
 }: TableProps<T>) {
   const allSelected = data.length > 0 && selectedRows.size === data.length;
@@ -118,115 +118,83 @@ export function Table<T>({
   }
 
   return (
-    <div className={cn('bg-[color:var(--background)] w-full', className)}>
+    <div className={cn('bg-[color:var(--background)] w-full rounded-lg border border-gray-200 dark:border-[color:var(--border)]', className)}>
       <div className="divide-y divide-gray-200 dark:divide-[color:var(--border)]">
-        {/* Gmail-style Header */}
-        <div className="h-10 flex items-center px-2 border-t border-b border-gray-200 dark:border-[color:var(--border)] bg-gray-50/50 dark:bg-[color:var(--background)]">
-          <div className="flex items-center flex-1 min-w-0">
-            {selectable && (
-              <div className="w-10 flex items-center justify-center flex-shrink-0">
-                <input
-                  type="checkbox"
-                  checked={allSelected}
-                  ref={(input) => {
-                    if (input) input.indeterminate = someSelected;
-                  }}
-                  onChange={toggleSelectAll}
-                  className="w-4 h-4 rounded border-[color:var(--border)] text-[color:var(--primary)] focus:ring-2 focus:ring-[color:var(--primary)] focus:ring-offset-0 cursor-pointer"
-                  aria-label="Select all"
-                />
-              </div>
-            )}
-            <div className="flex-1 grid grid-cols-12 gap-2 pr-4">
-              {adjustedColumns.map((column) => (
-                <div
-                  key={column.key}
-                  className={cn(
-                    getColSpanClass(column.span),
-                    column.align === 'right' && 'text-right',
-                    column.align === 'center' && 'text-center',
-                    column.className
-                  )}
+        {/* Table Header */}
+        <div className="px-4 py-3 bg-gray-50 dark:bg-[color:var(--muted)]/40 border-b-2 border-gray-200 dark:border-[color:var(--border)]">
+          <div className="flex-1 grid grid-cols-12 gap-4 px-2">
+            {adjustedColumns.map((column) => (
+              <div
+                key={column.key}
+                className={cn(
+                  getColSpanClass(column.span),
+                  column.align === 'right' && 'text-right',
+                  column.align === 'center' && 'text-center',
+                  column.className
+                )}
+              >
+                <Text
+                  size="xs"
+                  className="font-semibold text-gray-900 dark:text-gray-100 uppercase tracking-wider text-xs"
                 >
-                  <Text
-                    size="xs"
-                    className="font-bold text-gray-700 dark:text-gray-300 tracking-wide"
-                  >
-                    {column.label.split(' ').map((word, index) => 
-                      index === 0 ? word.charAt(0).toUpperCase() + word.slice(1).toLowerCase() : word.toLowerCase()
-                    ).join(' ')}
-                  </Text>
-                </div>
-              ))}
-            </div>
+                  {column.label.split(' ').map((word, index) => 
+                    index === 0 ? word.charAt(0).toUpperCase() + word.slice(1).toLowerCase() : word.toLowerCase()
+                  ).join(' ')}
+                </Text>
+              </div>
+            ))}
           </div>
         </div>
 
-        {/* Gmail-style Rows */}
-        {data.map((item) => {
+        {/* Table Rows */}
+        {data.map((item, index) => {
           const rowId = getRowId(item);
           const isSelected = selectedRows.has(rowId);
+          const isEvenRow = index % 2 === 0;
           return (
             <div
               key={rowId}
               className={cn(
-                'h-12 flex items-center px-2',
-                'hover:bg-gray-100 dark:hover:bg-[color:var(--muted)]/30',
-                'transition-colors duration-100',
-                (onRowClick || selectable) && 'cursor-pointer',
-                isSelected && 'bg-blue-50 dark:bg-[color:var(--primary)]/10'
+                'flex items-center px-4 py-3 transition-all duration-150',
+                isEvenRow && 'bg-white/50 dark:bg-[color:var(--background)]/50',
+                !isEvenRow && 'bg-gray-50/30 dark:bg-[color:var(--muted)]/20',
+                'hover:bg-blue-50 dark:hover:bg-[color:var(--primary)]/15',
+                onRowClick && 'cursor-pointer',
+                isSelected && 'bg-blue-100 dark:bg-[color:var(--primary)]/25'
               )}
               onClick={() => {
-                if (selectable && onSelectionChange) {
-                  toggleRowSelection(rowId);
-                }
                 if (onRowClick) {
                   handleRowClick(item);
                 }
               }}
             >
-              <div className="flex items-center flex-1 min-w-0">
-                {selectable && (
-                  <div className="w-10 flex items-center justify-center flex-shrink-0">
-                    <input
-                      type="checkbox"
-                      checked={isSelected}
-                      onChange={() => toggleRowSelection(rowId)}
-                      onClick={(e) => e.stopPropagation()}
-                      className="w-4 h-4 rounded border-[color:var(--border)] text-[color:var(--primary)] focus:ring-2 focus:ring-[color:var(--primary)] focus:ring-offset-0 cursor-pointer"
-                      aria-label={`Select row ${rowId}`}
-                    />
+              <div className="flex-1 grid grid-cols-12 gap-4 px-2 min-w-0">
+                {adjustedColumns.map((column) => (
+                  <div
+                    key={column.key}
+                    className={cn(
+                      getColSpanClass(column.span),
+                      'min-w-0',
+                      column.align === 'right' && 'text-right',
+                      column.align === 'center' && 'text-center',
+                      column.className
+                    )}
+                  >
+                    {column.render ? (
+                      column.render(item, isSelected)
+                    ) : (
+                      <Text
+                        size="sm"
+                        className={cn(
+                          'truncate transition-colors',
+                          isSelected ? 'font-semibold text-gray-900 dark:text-gray-100' : 'font-normal text-gray-700 dark:text-gray-300'
+                        )}
+                      >
+                        {(item as Record<string, unknown>)[column.key] as string}
+                      </Text>
+                    )}
                   </div>
-                )}
-                <div className="flex-1 grid grid-cols-12 gap-2 pr-4 min-w-0">
-                  {adjustedColumns.map((column) => (
-                    <div
-                      key={column.key}
-                      className={cn(
-                        getColSpanClass(column.span),
-                        'min-w-0',
-                        column.align === 'right' && 'text-right',
-                        column.align === 'center' && 'text-center',
-                        column.className
-                      )}
-                    >
-                      {column.render ? (
-                        column.render(item, isSelected)
-                      ) : (
-                        <Text
-                          size="sm"
-                          className={cn(
-                            'truncate',
-                            isSelected ? 'font-semibold dark:text-gray-100' : 'font-normal dark:text-gray-200',
-                            '[color:color-mix(in_oklab,var(--color-black)_100%,transparent)]'
-                          )}
-                        >
-                          {(item as Record<string, unknown>)[column.key] as string}
-                        </Text>
-                      )}
-                    </div>
-                  ))}
-                </div>
+                ))}
               </div>
             </div>
           );
