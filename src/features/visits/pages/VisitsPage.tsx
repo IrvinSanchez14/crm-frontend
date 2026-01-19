@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import { Header } from '../../../shared/components/organisms/Header';
 import { Sidebar } from '../../../shared/components/organisms/Sidebar';
 import { RightSidebar } from '../../../shared/components/organisms/RightSidebar';
@@ -22,7 +22,6 @@ import { VisitDetailView } from '../components/VisitDetailView';
 
 export function VisitsPage() {
   const { user, logout } = useAuth();
-  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const projectIdFromUrl = searchParams.get('project_id');
   

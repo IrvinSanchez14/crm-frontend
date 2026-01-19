@@ -7,12 +7,9 @@ import { useState, useMemo } from 'react';
 import { Button } from '../../../shared/components/atoms/Button';
 import { Text } from '../../../shared/components/atoms/Text';
 import { Heading } from '../../../shared/components/atoms/Heading';
-import { cn } from '../../../core/utils/cn';
 import { 
   type BudgetDetail,
-  deleteBudgetItem,
-  updateBudgetItem,
-  type BudgetItemUpdate
+  deleteBudgetItem
 } from '../../../infrastructure/api/api.client';
 import { decodeJwt } from '../../../core/utils/jwt.utils';
 import { useAuth } from '../../../shared/hooks/useAuth';

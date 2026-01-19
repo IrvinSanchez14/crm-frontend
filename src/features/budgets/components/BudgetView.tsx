@@ -3,7 +3,7 @@
  * Shows budget details with items and allows management
  */
 
-import { useState, useCallback } from 'react';
+import { useState } from 'react';
 import { Button } from '../../../shared/components/atoms/Button';
 import { Text } from '../../../shared/components/atoms/Text';
 import { Heading } from '../../../shared/components/atoms/Heading';

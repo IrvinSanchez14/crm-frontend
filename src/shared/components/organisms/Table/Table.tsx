@@ -12,40 +12,41 @@ export function Table<T>({
   emptyMessage = 'No items found',
   onRowClick,
   selectedRows = new Set(),
-  onSelectionChange,
-  selectable = false,
+  onSelectionChange: _onSelectionChange,
+  selectable: _selectable = false,
   className,
 }: TableProps<T>) {
-  const allSelected = data.length > 0 && selectedRows.size === data.length;
-  const someSelected = selectedRows.size > 0 && selectedRows.size < data.length;
+  // Selection functionality (for future use)
+  // const allSelected = data.length > 0 && selectedRows.size === data.length;
+  // const someSelected = selectedRows.size > 0 && selectedRows.size < data.length;
 
-  const toggleSelectAll = useCallback(() => {
-    if (!onSelectionChange) return;
-    
-    if (allSelected) {
-      onSelectionChange(new Set());
-    } else {
-      onSelectionChange(new Set(data.map((item) => getRowId(item))));
-    }
-  }, [allSelected, data, getRowId, onSelectionChange]);
+  // const toggleSelectAll = useCallback(() => {
+  //   if (!onSelectionChange) return;
+  //   
+  //   if (allSelected) {
+  //     onSelectionChange(new Set());
+  //   } else {
+  //     onSelectionChange(new Set(data.map((item) => getRowId(item))));
+  //   }
+  // }, [allSelected, data, getRowId, onSelectionChange]);
 
-  const toggleRowSelection = useCallback(
-    (rowId: string, event?: React.MouseEvent) => {
-      if (!onSelectionChange) return;
-      if (event) {
-        event.stopPropagation();
-      }
+  // const toggleRowSelection = useCallback(
+  //   (rowId: string, event?: React.MouseEvent) => {
+  //     if (!onSelectionChange) return;
+  //     if (event) {
+  //       event.stopPropagation();
+  //     }
 
-      const newSelection = new Set(selectedRows);
-      if (newSelection.has(rowId)) {
-        newSelection.delete(rowId);
-      } else {
-        newSelection.add(rowId);
-      }
-      onSelectionChange(newSelection);
-    },
-    [selectedRows, onSelectionChange]
-  );
+  //     const newSelection = new Set(selectedRows);
+  //     if (newSelection.has(rowId)) {
+  //       newSelection.delete(rowId);
+  //     } else {
+  //       newSelection.add(rowId);
+  //     }
+  //     onSelectionChange(newSelection);
+  //   },
+  //   [selectedRows, onSelectionChange]
+  // );
 
   const handleRowClick = useCallback(
     (item: T) => {
@@ -134,7 +135,7 @@ export function Table<T>({
                 )}
               >
                 <Text
-                  size="xs"
+                  size="sm"
                   className="font-semibold text-gray-900 dark:text-gray-100 uppercase tracking-wider text-xs"
                 >
                   {column.label.split(' ').map((word, index) => 

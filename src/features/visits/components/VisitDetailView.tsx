@@ -11,16 +11,12 @@ import { Heading } from '../../../shared/components/atoms/Heading';
 import { cn } from '../../../core/utils/cn';
 import { 
   updateVisit,
-  changeVisitStatus,
   getBudgetByVisit,
   createBudget,
-  acceptBudget,
   type VisitDetail,
   type VisitUpdate,
-  type VisitStatus,
   type BudgetDetail,
-  type BudgetCreate,
-  type BudgetAcceptRequest
+  type BudgetCreate
 } from '../../../infrastructure/api/api.client';
 import { decodeJwt } from '../../../core/utils/jwt.utils';
 import { useAuth } from '../../../shared/hooks/useAuth';
@@ -32,7 +28,7 @@ export interface VisitDetailViewProps {
   onCancel: () => void;
 }
 
-export function VisitDetailView({ visit, onSuccess, onCancel }: VisitDetailViewProps) {
+export function VisitDetailView({ visit, onSuccess, onCancel: _onCancel }: VisitDetailViewProps) {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -107,26 +103,7 @@ export function VisitDetailView({ visit, onSuccess, onCancel }: VisitDetailViewP
     }
   };
 
-  const handleStatusChange = async (newStatus: VisitStatus) => {
-    const companyId = getCompanyId();
-    if (!companyId) {
-      setError('Company ID not found. Please log in again.');
-      return;
-    }
-
-    try {
-      setLoading(true);
-      setError(null);
-      await changeVisitStatus(visit.id, newStatus, companyId);
-      if (onSuccess) {
-        onSuccess();
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to change status');
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Status change is handled through the edit form
 
   const handleCreateBudget = async () => {
     const companyId = getCompanyId();
@@ -157,34 +134,9 @@ export function VisitDetailView({ visit, onSuccess, onCancel }: VisitDetailViewP
     }
   };
 
-  const handleAcceptBudget = async () => {
-    if (!budget) return;
-    
-    const companyId = getCompanyId();
-    if (!companyId || !user?.id) {
-      setError('Company ID or User ID not found.');
-      return;
-    }
+  // Budget acceptance is handled in BudgetView component
 
-    try {
-      setLoading(true);
-      setError(null);
-      const acceptRequest: BudgetAcceptRequest = {
-        accepted_by_user_id: user.id,
-      };
-      await acceptBudget(budget.id, acceptRequest, companyId);
-      await fetchBudget(); // Refresh budget
-      if (onSuccess) {
-        onSuccess();
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to accept budget');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const statusColors: Record<VisitStatus, string> = {
+  const statusColors: Record<string, string> = {
     planning: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
     in_review: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
     approved: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',

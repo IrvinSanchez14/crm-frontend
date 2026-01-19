@@ -3,7 +3,7 @@
  * Form for creating a new visit for a project
  */
 
-import { useState, type FormEvent, useEffect, useMemo } from 'react';
+import { useState, type FormEvent, useMemo } from 'react';
 import { FormField } from '../../../shared/components/molecules/FormField';
 import { Combobox, type ComboboxOption } from '../../../shared/components/molecules/Combobox';
 import { Button } from '../../../shared/components/atoms/Button';

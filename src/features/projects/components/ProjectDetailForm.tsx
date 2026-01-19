@@ -57,16 +57,7 @@ export function ProjectDetailForm({ project, onSuccess, onCancel }: ProjectDetai
     [clients]
   );
 
-  // Convert categories to combobox options
-  const categoryOptions: ComboboxOption[] = useMemo(
-    () =>
-      categories.map((category) => ({
-        id: category.id,
-        label: category.name,
-        value: category.id,
-      })),
-    [categories]
-  );
+  // Categories are used directly in the select dropdown below
 
   // Get company_id from JWT token
   const getCompanyId = (): string | null => {
@@ -116,10 +107,7 @@ export function ProjectDetailForm({ project, onSuccess, onCancel }: ProjectDetai
     if (error) setError(null);
   };
 
-  const handleCategoryChange = (value: string) => {
-    setFormData((prev) => ({ ...prev, category_id: value }));
-    if (error) setError(null);
-  };
+  // Category change is handled through handleChange('category_id')
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
