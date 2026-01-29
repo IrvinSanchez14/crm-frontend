@@ -33,7 +33,7 @@ export function BudgetItemsList({ budget, onItemUpdated }: BudgetItemsListProps)
     return payload?.company_id || null;
   };
 
-  // Group items by section
+  // Group items by section and calculate totals
   const groupedItems = useMemo(() => {
     const groups: Record<string, typeof budget.budget_items> = {};
     budget.budget_items.forEach((item) => {
@@ -45,6 +45,15 @@ export function BudgetItemsList({ budget, onItemUpdated }: BudgetItemsListProps)
     });
     return groups;
   }, [budget.budget_items]);
+
+  // Calculate section totals
+  const sectionTotals = useMemo(() => {
+    const totals: Record<string, number> = {};
+    Object.entries(groupedItems).forEach(([section, items]) => {
+      totals[section] = items.reduce((sum, item) => sum + parseFloat(item.subtotal), 0);
+    });
+    return totals;
+  }, [groupedItems]);
 
   const handleDelete = async (itemId: string) => {
     if (!confirm('Are you sure you want to delete this item?')) return;
@@ -198,6 +207,22 @@ export function BudgetItemsList({ budget, onItemUpdated }: BudgetItemsListProps)
                     )}
                   </tr>
                 ))}
+                {/* Category Total Row */}
+                <tr className="border-t-2 border-[color:var(--border)] bg-[color:var(--muted)]">
+                  <td colSpan={4} className="px-4 py-3">
+                    <Text variant="default" className="font-bold">
+                      {section} Total
+                    </Text>
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    <Text variant="default" className="font-bold text-lg">
+                      {formatCurrency(sectionTotals[section].toString())}
+                    </Text>
+                  </td>
+                  {budget.status === 'draft' && (
+                    <td className="px-4 py-3"></td>
+                  )}
+                </tr>
               </tbody>
             </table>
           </div>

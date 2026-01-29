@@ -1063,3 +1063,448 @@ export async function rejectBudget(
   );
   return response.data;
 }
+
+/**
+ * Rendering interfaces
+ * For creating visual project proposals with uploaded images and material specs
+ */
+export type RenderingStatus = 'draft' | 'sent' | 'approved' | 'rejected';
+
+export interface RenderingImage {
+  id: string;
+  rendering_id: string;
+  image_url: string;
+  title: string | null;
+  description: string | null;
+  display_order: number;
+  is_full_page: boolean;
+  created_at: string;
+}
+
+export interface RenderingItemSpecification {
+  [key: string]: string;
+}
+
+export interface RenderingItem {
+  id: string;
+  rendering_id: string;
+  budget_item_id: string | null;
+  category: string;
+  name: string;
+  is_material_sample: boolean;
+  material_image_url: string | null;
+  specifications: RenderingItemSpecification | null;
+  subtotal: string | null;
+  tax: string | null;
+  total: string | null;
+  product_image_url: string | null;
+  display_order: number;
+  show_in_materials_page: boolean;
+  show_in_details_page: boolean;
+  notes: string | null;
+  disclaimer: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Rendering {
+  id: string;
+  title: string;
+  description: string | null;
+  status: RenderingStatus;
+  visit_id: string | null;
+  budget_id: string | null;
+  company_id: string;
+  created_by_user_id: string | null;
+  expiration_date: string | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface RenderingDetail extends Rendering {
+  images: RenderingImage[];
+  items: RenderingItem[];
+  visit?: VisitDetail;
+  budget?: BudgetDetail;
+  created_by_name: string | null;
+}
+
+export interface RenderingImageCreate {
+  image_url: string;
+  title?: string;
+  description?: string;
+  display_order?: number;
+  is_full_page?: boolean;
+}
+
+export interface RenderingImageUpdate {
+  image_url?: string;
+  title?: string;
+  description?: string;
+  display_order?: number;
+  is_full_page?: boolean;
+}
+
+export interface RenderingItemCreate {
+  budget_item_id?: string;
+  category: string;
+  name: string;
+  is_material_sample?: boolean;
+  material_image_url?: string;
+  specifications?: RenderingItemSpecification;
+  subtotal?: string;
+  tax?: string;
+  total?: string;
+  product_image_url?: string;
+  display_order?: number;
+  show_in_materials_page?: boolean;
+  show_in_details_page?: boolean;
+  notes?: string;
+  disclaimer?: string;
+}
+
+export interface RenderingItemUpdate {
+  budget_item_id?: string;
+  category?: string;
+  name?: string;
+  is_material_sample?: boolean;
+  material_image_url?: string;
+  specifications?: RenderingItemSpecification;
+  subtotal?: string;
+  tax?: string;
+  total?: string;
+  product_image_url?: string;
+  display_order?: number;
+  show_in_materials_page?: boolean;
+  show_in_details_page?: boolean;
+  notes?: string;
+  disclaimer?: string;
+}
+
+export interface RenderingCreate {
+  title: string;
+  description?: string;
+  visit_id?: string;
+  budget_id?: string;
+  expiration_date?: string;
+  notes?: string;
+}
+
+export interface RenderingUpdate {
+  title?: string;
+  description?: string;
+  status?: RenderingStatus;
+  visit_id?: string;
+  budget_id?: string;
+  expiration_date?: string;
+  notes?: string;
+}
+
+export interface RenderingsListParams {
+  company_id: string;
+  visit_id?: string;
+  budget_id?: string;
+  status?: RenderingStatus;
+  skip?: number;
+  limit?: number;
+}
+
+/**
+ * Renderings API methods
+ */
+export async function getRenderings(
+  params: RenderingsListParams
+): Promise<RenderingDetail[]> {
+  const {
+    company_id,
+    visit_id,
+    budget_id,
+    status,
+    skip = 0,
+    limit = 100,
+  } = params;
+
+  const queryParams = new URLSearchParams({
+    company_id,
+    skip: skip.toString(),
+    limit: limit.toString(),
+  });
+
+  if (visit_id) {
+    queryParams.append('visit_id', visit_id);
+  }
+  if (budget_id) {
+    queryParams.append('budget_id', budget_id);
+  }
+  if (status) {
+    queryParams.append('status', status);
+  }
+
+  const response = await apiClient.getPublic<RenderingDetail[]>(
+    `/renderings?${queryParams.toString()}`
+  );
+  return response.data;
+}
+
+export async function getRendering(
+  renderingId: string,
+  company_id: string
+): Promise<RenderingDetail> {
+  const queryParams = new URLSearchParams({ company_id });
+  const response = await apiClient.getPublic<RenderingDetail>(
+    `/renderings/${renderingId}?${queryParams.toString()}`
+  );
+  return response.data;
+}
+
+export async function getRenderingByVisit(
+  visitId: string,
+  company_id: string
+): Promise<RenderingDetail | null> {
+  try {
+    const queryParams = new URLSearchParams({ company_id });
+    const response = await apiClient.getPublic<RenderingDetail>(
+      `/renderings/visit/${visitId}?${queryParams.toString()}`
+    );
+    return response.data;
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 404) {
+      return null;
+    }
+    throw error;
+  }
+}
+
+export async function getRenderingByBudget(
+  budgetId: string,
+  company_id: string
+): Promise<RenderingDetail | null> {
+  try {
+    const queryParams = new URLSearchParams({ company_id });
+    const response = await apiClient.getPublic<RenderingDetail>(
+      `/renderings/budget/${budgetId}?${queryParams.toString()}`
+    );
+    return response.data;
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 404) {
+      return null;
+    }
+    throw error;
+  }
+}
+
+export async function createRendering(
+  renderingData: RenderingCreate,
+  company_id: string,
+  created_by_user_id?: string
+): Promise<RenderingDetail> {
+  const queryParams = new URLSearchParams({ company_id });
+  if (created_by_user_id) {
+    queryParams.append('created_by_user_id', created_by_user_id);
+  }
+
+  const response = await apiClient.postPublic<RenderingDetail, RenderingCreate>(
+    `/renderings/?${queryParams.toString()}`,
+    renderingData
+  );
+  return response.data;
+}
+
+export async function updateRendering(
+  renderingId: string,
+  renderingData: RenderingUpdate,
+  company_id: string
+): Promise<RenderingDetail> {
+  const queryParams = new URLSearchParams({ company_id });
+  const response = await apiClient.putPublic<RenderingDetail, RenderingUpdate>(
+    `/renderings/${renderingId}?${queryParams.toString()}`,
+    renderingData
+  );
+  return response.data;
+}
+
+export async function deleteRendering(
+  renderingId: string,
+  company_id: string
+): Promise<void> {
+  const queryParams = new URLSearchParams({ company_id });
+  await apiClient.deletePublic(
+    `/renderings/${renderingId}?${queryParams.toString()}`
+  );
+}
+
+/**
+ * Rendering Images API methods
+ */
+export async function addRenderingImage(
+  renderingId: string,
+  imageData: RenderingImageCreate,
+  company_id: string
+): Promise<RenderingImage> {
+  const queryParams = new URLSearchParams({ company_id });
+  const response = await apiClient.postPublic<RenderingImage, RenderingImageCreate>(
+    `/renderings/${renderingId}/images?${queryParams.toString()}`,
+    imageData
+  );
+  return response.data;
+}
+
+export async function updateRenderingImage(
+  renderingId: string,
+  imageId: string,
+  imageData: RenderingImageUpdate,
+  company_id: string
+): Promise<RenderingImage> {
+  const queryParams = new URLSearchParams({ company_id });
+  const response = await apiClient.putPublic<RenderingImage, RenderingImageUpdate>(
+    `/renderings/${renderingId}/images/${imageId}?${queryParams.toString()}`,
+    imageData
+  );
+  return response.data;
+}
+
+export async function deleteRenderingImage(
+  renderingId: string,
+  imageId: string,
+  company_id: string
+): Promise<void> {
+  const queryParams = new URLSearchParams({ company_id });
+  await apiClient.deletePublic(
+    `/renderings/${renderingId}/images/${imageId}?${queryParams.toString()}`
+  );
+}
+
+export async function reorderRenderingImages(
+  renderingId: string,
+  imageIds: string[],
+  company_id: string
+): Promise<RenderingImage[]> {
+  const queryParams = new URLSearchParams({ company_id });
+  const response = await apiClient.postPublic<RenderingImage[], { image_ids: string[] }>(
+    `/renderings/${renderingId}/images/reorder?${queryParams.toString()}`,
+    { image_ids: imageIds }
+  );
+  return response.data;
+}
+
+/**
+ * Rendering Items API methods
+ */
+export async function addRenderingItem(
+  renderingId: string,
+  itemData: RenderingItemCreate,
+  company_id: string
+): Promise<RenderingItem> {
+  const queryParams = new URLSearchParams({ company_id });
+  const response = await apiClient.postPublic<RenderingItem, RenderingItemCreate>(
+    `/renderings/${renderingId}/items?${queryParams.toString()}`,
+    itemData
+  );
+  return response.data;
+}
+
+export async function updateRenderingItem(
+  renderingId: string,
+  itemId: string,
+  itemData: RenderingItemUpdate,
+  company_id: string
+): Promise<RenderingItem> {
+  const queryParams = new URLSearchParams({ company_id });
+  const response = await apiClient.putPublic<RenderingItem, RenderingItemUpdate>(
+    `/renderings/${renderingId}/items/${itemId}?${queryParams.toString()}`,
+    itemData
+  );
+  return response.data;
+}
+
+export async function deleteRenderingItem(
+  renderingId: string,
+  itemId: string,
+  company_id: string
+): Promise<void> {
+  const queryParams = new URLSearchParams({ company_id });
+  await apiClient.deletePublic(
+    `/renderings/${renderingId}/items/${itemId}?${queryParams.toString()}`
+  );
+}
+
+export async function importBudgetItemsToRendering(
+  renderingId: string,
+  budgetItemIds: string[],
+  company_id: string
+): Promise<RenderingItem[]> {
+  const queryParams = new URLSearchParams({ company_id });
+  const response = await apiClient.postPublic<RenderingItem[], { budget_item_ids: string[] }>(
+    `/renderings/${renderingId}/items/from-budget?${queryParams.toString()}`,
+    { budget_item_ids: budgetItemIds }
+  );
+  return response.data;
+}
+
+/**
+ * Generate Rendering PDF
+ */
+export async function generateRenderingPDF(
+  renderingId: string,
+  company_id: string
+): Promise<Blob> {
+  const queryParams = new URLSearchParams({ company_id });
+  const response = await fetch(
+    `${API_BASE_URL}/renderings/${renderingId}/pdf?${queryParams.toString()}`,
+    {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/pdf',
+      },
+    }
+  );
+
+  if (!response.ok) {
+    throw new ApiError(response.status, response.statusText, 'Failed to generate PDF');
+  }
+
+  return response.blob();
+}
+
+/**
+ * Upload Response
+ */
+export interface UploadResponse {
+  url: string;
+  filename: string;
+  content_type: string;
+  size: number;
+}
+
+/**
+ * Upload an image file to cloud storage
+ */
+export async function uploadImage(
+  file: File,
+  company_id: string,
+  folder: string = 'renderings'
+): Promise<UploadResponse> {
+  const queryParams = new URLSearchParams({ company_id, folder });
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const response = await fetch(
+    `${API_BASE_URL}/uploads/image?${queryParams.toString()}`,
+    {
+      method: 'POST',
+      body: formData,
+    }
+  );
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new ApiError(
+      response.status,
+      response.statusText,
+      errorData.detail || 'Failed to upload image'
+    );
+  }
+
+  return response.json();
+}

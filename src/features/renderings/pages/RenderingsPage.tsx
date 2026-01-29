@@ -1,6 +1,6 @@
 /**
- * Budgets List Page
- * Displays all budgets with ability to generate PDF reports
+ * Renderings Page
+ * List view for all renderings with filtering
  */
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
@@ -13,23 +13,25 @@ import { Heading } from '../../../shared/components/atoms/Heading';
 import { Text } from '../../../shared/components/atoms/Text';
 import { Button } from '../../../shared/components/atoms/Button';
 import { cn } from '../../../core/utils/cn';
-import { 
-  getBudgets, 
-  type BudgetDetail,
-  type BudgetStatus
+import {
+  getRenderings,
+  getVisits,
+  type RenderingDetail,
+  type VisitDetail,
+  type RenderingStatus
 } from '../../../infrastructure/api/api.client';
 import { decodeJwt } from '../../../core/utils/jwt.utils';
-import { generateBudgetPDF } from '../utils/pdfGenerator';
 
-export function BudgetsListPage() {
+export function RenderingsPage() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [budgets, setBudgets] = useState<BudgetDetail[]>([]);
-  const [selectedStatus, setSelectedStatus] = useState<BudgetStatus | ''>('');
+  const [renderings, setRenderings] = useState<RenderingDetail[]>([]);
+  const [visits, setVisits] = useState<VisitDetail[]>([]);
+  const [selectedStatus, setSelectedStatus] = useState<RenderingStatus | ''>('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [generatingPDF, setGeneratingPDF] = useState<string | null>(null);
 
   // Get company_id from JWT token
   const getCompanyId = useCallback((): string | null => {
@@ -38,8 +40,26 @@ export function BudgetsListPage() {
     return payload?.company_id || null;
   }, [user]);
 
-  // Fetch budgets function
-  const fetchBudgets = useCallback(async () => {
+  // Fetch visits for dropdown
+  const fetchVisits = useCallback(async () => {
+    const companyId = getCompanyId();
+    if (!companyId) return;
+
+    try {
+      const data = await getVisits({
+        company_id: companyId,
+        skip: 0,
+        limit: 1000,
+        include_details: true,
+      });
+      setVisits(data);
+    } catch (err) {
+      console.error('Failed to load visits:', err);
+    }
+  }, [getCompanyId]);
+
+  // Fetch renderings
+  const fetchRenderings = useCallback(async () => {
     const companyId = getCompanyId();
     if (!companyId) {
       setError('Company ID not found. Please log in again.');
@@ -55,60 +75,52 @@ export function BudgetsListPage() {
         skip: 0,
         limit: 1000,
       };
-      
+
       if (selectedStatus) {
         params.status = selectedStatus;
       }
-      
-      const data = await getBudgets(params);
-      setBudgets(data);
+
+      const data = await getRenderings(params);
+      setRenderings(data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load budgets');
+      setError(err instanceof Error ? err.message : 'Failed to load renderings');
     } finally {
       setLoading(false);
     }
   }, [getCompanyId, selectedStatus]);
 
-  // Fetch budgets on mount and when filters change
+  // Fetch data on mount
   useEffect(() => {
-    fetchBudgets();
-  }, [fetchBudgets]);
+    fetchVisits();
+  }, [fetchVisits]);
 
-  // Handle PDF generation
-  const handleGeneratePDF = useCallback(async (budget: BudgetDetail) => {
-    try {
-      setGeneratingPDF(budget.id);
-      await generateBudgetPDF(budget);
-    } catch (err) {
-      console.error('Failed to generate PDF:', err);
-      alert('Failed to generate PDF. Please try again.');
-    } finally {
-      setGeneratingPDF(null);
-    }
-  }, []);
+  // Fetch renderings when filters change
+  useEffect(() => {
+    fetchRenderings();
+  }, [fetchRenderings]);
 
   // Table columns
-  const columns: TableColumn<BudgetDetail>[] = useMemo(
+  const columns: TableColumn<RenderingDetail>[] = useMemo(
     () => [
       {
         key: 'title',
         label: 'Title',
-        span: 3,
-        render: (budget) => (
+        span: 4,
+        render: (rendering) => (
           <Text variant="default" className="font-medium">
-            {budget.title}
+            {rendering.title}
           </Text>
         ),
       },
       {
         key: 'visit',
         label: 'Visit',
-        span: 2,
-        render: (budget) => {
-          // We'll need to fetch visit details or include them in the response
+        span: 3,
+        render: (rendering) => {
+          const visit = visits.find((v) => v.id === rendering.visit_id);
           return (
             <Text variant="muted" size="sm">
-              {budget.visit_id ? 'View Visit' : '—'}
+              {visit?.title || '—'}
             </Text>
           );
         },
@@ -117,81 +129,48 @@ export function BudgetsListPage() {
         key: 'status',
         label: 'Status',
         span: 2,
-        render: (budget) => {
-          const statusColors: Record<BudgetStatus, string> = {
+        render: (rendering) => {
+          const statusColors: Record<RenderingStatus, string> = {
             draft: 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200',
-            pending_approval: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
-            accepted: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
+            sent: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
+            approved: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
             rejected: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
-            revised: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
           };
           return (
             <span
               className={cn(
                 'px-2 py-1 rounded-full text-xs font-medium',
-                statusColors[budget.status]
+                statusColors[rendering.status]
               )}
             >
-              {budget.status.replace('_', ' ').toUpperCase()}
+              {rendering.status.toUpperCase()}
             </span>
           );
         },
       },
       {
-        key: 'total_amount',
-        label: 'Total',
-        span: 2,
-        render: (budget) => {
-          const amount = parseFloat(budget.total_amount);
-          return (
-            <Text variant="default" className="font-semibold">
-              {new Intl.NumberFormat('en-US', {
-                style: 'currency',
-                currency: 'USD',
-                minimumFractionDigits: 2,
-              }).format(amount)}
-            </Text>
-          );
-        },
-      },
-      {
-        key: 'created_at',
-        label: 'Created',
-        span: 2,
-        render: (budget) => (
+        key: 'expiration_date',
+        label: 'Expires',
+        span: 3,
+        render: (rendering) => (
           <Text variant="muted" size="sm">
-            {new Date(budget.created_at).toLocaleDateString()}
+            {rendering.expiration_date
+              ? new Date(rendering.expiration_date).toLocaleDateString()
+              : '—'}
           </Text>
         ),
       },
-      {
-        key: 'actions',
-        label: 'Actions',
-        span: 1,
-        align: 'center',
-        render: (budget) => (
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={(e) => {
-              e.stopPropagation();
-              handleGeneratePDF(budget);
-            }}
-            disabled={generatingPDF === budget.id}
-          >
-            {generatingPDF === budget.id ? 'Generating...' : 'PDF'}
-          </Button>
-        ),
-      },
     ],
-    [handleGeneratePDF, generatingPDF]
+    [visits]
   );
 
-  const handleRowClick = useCallback((budget: BudgetDetail) => {
-    // Navigate to the visit detail page where this budget belongs
-    if (budget.visit_id) {
-      navigate(`/visits/${budget.visit_id}`);
-    }
+  // Navigate to rendering detail page on row click
+  const handleRowClick = useCallback((rendering: RenderingDetail) => {
+    navigate(`/renderings/${rendering.id}`);
+  }, [navigate]);
+
+  const handleCreateClick = useCallback(() => {
+    navigate('/renderings/create');
   }, [navigate]);
 
   return (
@@ -202,7 +181,7 @@ export function BudgetsListPage() {
         onLogout={logout}
       />
       <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
-      
+
       <main
         className={cn(
           'w-full pt-5',
@@ -212,26 +191,28 @@ export function BudgetsListPage() {
       >
         <div className="p-6">
           <div className="flex items-center justify-between mb-6">
-            <Heading variant="h1">Budgets</Heading>
+            <Heading variant="h1">Renderings</Heading>
+            <Button onClick={handleCreateClick} variant="primary">
+              Create Rendering
+            </Button>
           </div>
 
           {/* Filters */}
           <div className="mb-6 flex gap-4 items-end">
-            <div className="flex-1">
+            <div className="flex-1 max-w-xs">
               <label className="block text-sm font-medium mb-2 text-[color:var(--foreground)]">
                 Filter by Status
               </label>
               <select
                 value={selectedStatus}
-                onChange={(e) => setSelectedStatus(e.target.value as BudgetStatus | '')}
+                onChange={(e) => setSelectedStatus(e.target.value as RenderingStatus | '')}
                 className="w-full px-3 py-2 border border-[color:var(--border)] rounded-lg bg-[color:var(--background)] text-[color:var(--foreground)]"
               >
                 <option value="">All Statuses</option>
                 <option value="draft">Draft</option>
-                <option value="pending_approval">Pending Approval</option>
-                <option value="accepted">Accepted</option>
+                <option value="sent">Sent</option>
+                <option value="approved">Approved</option>
                 <option value="rejected">Rejected</option>
-                <option value="revised">Revised</option>
               </select>
             </div>
           </div>
@@ -244,11 +225,11 @@ export function BudgetsListPage() {
 
           <Table
             columns={columns}
-            data={budgets}
-            getRowId={(budget) => budget.id}
+            data={renderings}
+            getRowId={(rendering) => rendering.id}
             loading={loading}
             error={error}
-            emptyMessage="No budgets found"
+            emptyMessage="No renderings found"
             onRowClick={handleRowClick}
             selectable={false}
           />

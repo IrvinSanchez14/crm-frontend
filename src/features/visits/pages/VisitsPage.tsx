@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Header } from '../../../shared/components/organisms/Header';
 import { Sidebar } from '../../../shared/components/organisms/Sidebar';
 import { RightSidebar } from '../../../shared/components/organisms/RightSidebar';
@@ -9,33 +9,31 @@ import { Heading } from '../../../shared/components/atoms/Heading';
 import { Text } from '../../../shared/components/atoms/Text';
 import { Button } from '../../../shared/components/atoms/Button';
 import { cn } from '../../../core/utils/cn';
-import { 
-  getVisits, 
-  getProjects, 
-  type VisitDetail, 
+import {
+  getVisits,
+  getProjects,
+  type VisitDetail,
   type ProjectDetail,
-  type VisitStatus 
+  type VisitStatus
 } from '../../../infrastructure/api/api.client';
 import { decodeJwt } from '../../../core/utils/jwt.utils';
-import { CreateVisitForm } from '../components/CreateVisitForm';
-import { VisitDetailView } from '../components/VisitDetailView';
+import { CreateVisitForm, CreateVisitFormFooter } from '../components/CreateVisitForm';
 
 export function VisitsPage() {
   const { user, logout } = useAuth();
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const projectIdFromUrl = searchParams.get('project_id');
-  
+
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isRightSidebarOpen, setIsRightSidebarOpen] = useState(false);
-  const [rightSidebarMode, setRightSidebarMode] = useState<'create' | 'detail'>('create');
-  const [selectedVisit, setSelectedVisit] = useState<VisitDetail | null>(null);
   const [visits, setVisits] = useState<VisitDetail[]>([]);
   const [projects, setProjects] = useState<ProjectDetail[]>([]);
   const [selectedProjectId, setSelectedProjectId] = useState<string>(projectIdFromUrl || '');
   const [selectedStatus, setSelectedStatus] = useState<VisitStatus | ''>('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedVisits, setSelectedVisits] = useState<Set<string>>(new Set());
+  const [formLoading, setFormLoading] = useState(false);
 
   // Get company_id from JWT token
   const getCompanyId = useCallback((): string | null => {
@@ -85,15 +83,15 @@ export function VisitsPage() {
         limit: 1000,
         include_details: true,
       };
-      
+
       if (selectedProjectId) {
         params.project_id = selectedProjectId;
       }
-      
+
       if (selectedStatus) {
         params.status = selectedStatus;
       }
-      
+
       const data = await getVisits(params);
       setVisits(data);
     } catch (err) {
@@ -113,13 +111,13 @@ export function VisitsPage() {
     fetchVisits();
   }, [fetchVisits]);
 
-  // Table columns
+  // Table columns - simplified to 4 columns
   const columns: TableColumn<VisitDetail>[] = useMemo(
     () => [
       {
         key: 'title',
         label: 'Title',
-        span: 3,
+        span: 4,
         render: (visit) => (
           <Text variant="default" className="font-medium">
             {visit.title}
@@ -129,7 +127,7 @@ export function VisitsPage() {
       {
         key: 'project',
         label: 'Project',
-        span: 2,
+        span: 3,
         render: (visit) => {
           const project = projects.find((p) => p.id === visit.project_id);
           return (
@@ -166,20 +164,10 @@ export function VisitsPage() {
       {
         key: 'visit_date',
         label: 'Visit Date',
-        span: 2,
-        render: (visit) => (
-          <Text variant="muted" size="sm">
-            {visit.visit_date ? new Date(visit.visit_date).toLocaleDateString() : '—'}
-          </Text>
-        ),
-      },
-      {
-        key: 'created_at',
-        label: 'Created',
         span: 3,
         render: (visit) => (
           <Text variant="muted" size="sm">
-            {new Date(visit.created_at).toLocaleDateString()}
+            {visit.visit_date ? new Date(visit.visit_date).toLocaleDateString() : '—'}
           </Text>
         ),
       },
@@ -187,27 +175,22 @@ export function VisitsPage() {
     [projects]
   );
 
+  // Navigate to visit detail page on row click
   const handleRowClick = useCallback((visit: VisitDetail) => {
-    setSelectedVisit(visit);
-    setRightSidebarMode('detail');
-    setIsRightSidebarOpen(true);
-  }, []);
+    navigate(`/visits/${visit.id}`);
+  }, [navigate]);
 
   const handleCreateClick = useCallback(() => {
-    setSelectedVisit(null);
-    setRightSidebarMode('create');
     setIsRightSidebarOpen(true);
   }, []);
 
   const handleSuccess = useCallback(() => {
     setIsRightSidebarOpen(false);
-    setSelectedVisit(null);
     fetchVisits();
   }, [fetchVisits]);
 
   const handleCancel = useCallback(() => {
     setIsRightSidebarOpen(false);
-    setSelectedVisit(null);
   }, []);
 
   return (
@@ -218,8 +201,14 @@ export function VisitsPage() {
         onLogout={logout}
       />
       <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
-      
-      <main className="lg:pl-64 pt-16">
+
+      <main
+        className={cn(
+          'w-full pt-5',
+          'transition-all duration-500 ease-out',
+          isSidebarOpen ? 'lg:ml-64' : 'lg:ml-0'
+        )}
+      >
         <div className="p-6">
           <div className="flex items-center justify-between mb-6">
             <Heading variant="h1">Visits</Heading>
@@ -280,8 +269,6 @@ export function VisitsPage() {
             error={error}
             emptyMessage="No visits found"
             onRowClick={handleRowClick}
-            selectedRows={selectedVisits}
-            onSelectionChange={setSelectedVisits}
             selectable={false}
           />
         </div>
@@ -290,21 +277,20 @@ export function VisitsPage() {
       <RightSidebar
         isOpen={isRightSidebarOpen}
         onClose={handleCancel}
-        title={rightSidebarMode === 'create' ? 'Create Visit' : 'Visit Details'}
+        title="Create Visit"
+        footer={
+          <CreateVisitFormFooter
+            loading={formLoading}
+            onCancel={handleCancel}
+          />
+        }
       >
-        {rightSidebarMode === 'create' ? (
-          <CreateVisitForm
-            projects={projects}
-            onSuccess={handleSuccess}
-            onCancel={handleCancel}
-          />
-        ) : selectedVisit ? (
-          <VisitDetailView
-            visit={selectedVisit}
-            onSuccess={handleSuccess}
-            onCancel={handleCancel}
-          />
-        ) : null}
+        <CreateVisitForm
+          projects={projects}
+          onSuccess={handleSuccess}
+          onCancel={handleCancel}
+          onLoadingChange={setFormLoading}
+        />
       </RightSidebar>
     </div>
   );

@@ -11,11 +11,12 @@ export interface RightSidebarProps {
   onClose: () => void;
   title: string;
   children: React.ReactNode;
+  footer?: React.ReactNode;
   className?: string;
 }
 
 export const RightSidebar = memo<RightSidebarProps>(
-  ({ isOpen, onClose, title, children, className }) => {
+  ({ isOpen, onClose, title, children, footer, className }) => {
     // ESC key handler
     useEffect(() => {
       const handleEscape = (event: KeyboardEvent) => {
@@ -109,7 +110,14 @@ export const RightSidebar = memo<RightSidebarProps>(
           </div>
 
           {/* Content */}
-          <div className="flex-1 overflow-y-auto">{children}</div>
+          <div className="flex-1 overflow-y-auto px-6 py-4">{children}</div>
+
+          {/* Footer */}
+          {footer && (
+            <div className="px-6 py-4 border-t border-[color:var(--border)] bg-[color:var(--card)]">
+              {footer}
+            </div>
+          )}
         </aside>
       </>
     );

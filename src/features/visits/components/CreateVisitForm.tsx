@@ -1,45 +1,84 @@
 /**
  * Create Visit Form Component
- * Form for creating a new visit for a project
+ * Simplified form for admin to create a visit assignment
+ * Only requires: project, title, status, visit date
  */
 
-import { useState, type FormEvent, useMemo } from 'react';
+import { useState, useEffect, type FormEvent, useMemo } from 'react';
 import { FormField } from '../../../shared/components/molecules/FormField';
 import { Combobox, type ComboboxOption } from '../../../shared/components/molecules/Combobox';
 import { Button } from '../../../shared/components/atoms/Button';
 import { Label } from '../../../shared/components/atoms/Label/Label';
-import { 
-  createVisit, 
+import {
+  createVisit,
   type VisitCreate,
   type ProjectDetail
 } from '../../../infrastructure/api/api.client';
 import { decodeJwt } from '../../../core/utils/jwt.utils';
 import { useAuth } from '../../../shared/hooks/useAuth';
 
+export const CREATE_VISIT_FORM_ID = 'create-visit-form';
+
 export interface CreateVisitFormProps {
   projects: ProjectDetail[];
   onSuccess?: () => void;
   onCancel: () => void;
+  onLoadingChange?: (loading: boolean) => void;
 }
 
-export function CreateVisitForm({ projects, onSuccess, onCancel }: CreateVisitFormProps) {
+// Footer component to be used with RightSidebar footer prop
+export function CreateVisitFormFooter({
+  loading,
+  onCancel
+}: {
+  loading: boolean;
+  onCancel: () => void;
+}) {
+  return (
+    <div className="flex gap-3">
+      <Button
+        type="submit"
+        form={CREATE_VISIT_FORM_ID}
+        variant="primary"
+        disabled={loading}
+        className="flex-1"
+      >
+        {loading ? 'Creating...' : 'Create Visit'}
+      </Button>
+      <Button
+        type="button"
+        variant="secondary"
+        onClick={onCancel}
+        disabled={loading}
+        className="flex-1"
+      >
+        Cancel
+      </Button>
+    </div>
+  );
+}
+
+export function CreateVisitForm({
+  projects,
+  onSuccess,
+  onCancel,
+  onLoadingChange
+}: CreateVisitFormProps) {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [projectError, setProjectError] = useState<string | null>(null);
-  const [formData, setFormData] = useState<Omit<VisitCreate, 'created_by_user_id'>>({
+  const [formData, setFormData] = useState({
     title: '',
-    description: '',
-    status: 'planning',
+    status: 'planning' as const,
     visit_date: '',
-    inspection_notes: '',
-    estimated_materials_cost: '',
-    estimated_labor_cost: '',
-    estimated_total_cost: '',
-    images: [],
-    attachments: [],
     project_id: '',
   });
+
+  // Notify parent of loading state changes
+  useEffect(() => {
+    onLoadingChange?.(loading);
+  }, [loading, onLoadingChange]);
 
   // Convert projects to combobox options
   const projectOptions: ComboboxOption[] = useMemo(
@@ -60,7 +99,7 @@ export function CreateVisitForm({ projects, onSuccess, onCancel }: CreateVisitFo
   };
 
   const handleChange = (field: keyof typeof formData) => (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
     setFormData((prev) => ({ ...prev, [field]: e.target.value }));
     if (error) setError(null);
@@ -90,22 +129,16 @@ export function CreateVisitForm({ projects, onSuccess, onCancel }: CreateVisitFo
 
     try {
       setLoading(true);
-      
-      // Prepare data, converting empty strings to undefined
+
       const visitData: VisitCreate = {
-        ...formData,
-        description: formData.description || undefined,
+        title: formData.title,
+        project_id: formData.project_id,
+        status: formData.status,
         visit_date: formData.visit_date || undefined,
-        inspection_notes: formData.inspection_notes || undefined,
-        estimated_materials_cost: formData.estimated_materials_cost || undefined,
-        estimated_labor_cost: formData.estimated_labor_cost || undefined,
-        estimated_total_cost: formData.estimated_total_cost || undefined,
-        images: formData.images && formData.images.length > 0 ? formData.images : undefined,
-        attachments: formData.attachments && formData.attachments.length > 0 ? formData.attachments : undefined,
       };
 
       await createVisit(visitData, companyId);
-      
+
       if (onSuccess) {
         onSuccess();
       }
@@ -117,22 +150,12 @@ export function CreateVisitForm({ projects, onSuccess, onCancel }: CreateVisitFo
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form id={CREATE_VISIT_FORM_ID} onSubmit={handleSubmit} className="space-y-4">
       {error && (
         <div className="p-3 bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200 rounded-lg text-sm">
           {error}
         </div>
       )}
-
-      <FormField
-        label="Title *"
-        type="text"
-        value={formData.title}
-        onChange={handleChange('title')}
-        disabled={loading}
-        required
-        placeholder="Visit title"
-      />
 
       <Combobox
         label="Project *"
@@ -148,6 +171,16 @@ export function CreateVisitForm({ projects, onSuccess, onCancel }: CreateVisitFo
         disabled={loading}
         error={projectError || undefined}
         emptyMessage="No projects found"
+      />
+
+      <FormField
+        label="Title *"
+        type="text"
+        value={formData.title}
+        onChange={handleChange('title')}
+        disabled={loading}
+        required
+        placeholder="Visit title"
       />
 
       <div className="space-y-2">
@@ -177,87 +210,6 @@ export function CreateVisitForm({ projects, onSuccess, onCancel }: CreateVisitFo
           disabled={loading}
           className="w-full px-3 py-2 border border-[color:var(--border)] rounded-lg bg-[color:var(--background)] text-[color:var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[color:var(--primary)]"
         />
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="description">Description</Label>
-        <textarea
-          id="description"
-          value={formData.description}
-          onChange={handleChange('description')}
-          disabled={loading}
-          rows={3}
-          placeholder="Visit description"
-          className="w-full px-3 py-2 border border-[color:var(--border)] rounded-lg bg-[color:var(--background)] text-[color:var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[color:var(--primary)] resize-none"
-        />
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="inspection_notes">Inspection Notes</Label>
-        <textarea
-          id="inspection_notes"
-          value={formData.inspection_notes}
-          onChange={handleChange('inspection_notes')}
-          disabled={loading}
-          rows={4}
-          placeholder="Notes from the inspection..."
-          className="w-full px-3 py-2 border border-[color:var(--border)] rounded-lg bg-[color:var(--background)] text-[color:var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[color:var(--primary)] resize-none"
-        />
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="estimated_materials_cost">Materials Cost</Label>
-          <div className="relative">
-            <span className="absolute left-3 top-2.5 text-[color:var(--foreground)]">$</span>
-            <input
-              id="estimated_materials_cost"
-              type="number"
-              step="0.01"
-              value={formData.estimated_materials_cost}
-              onChange={handleChange('estimated_materials_cost')}
-              disabled={loading}
-              placeholder="0.00"
-              className="w-full pl-8 pr-3 py-2 border border-[color:var(--border)] rounded-lg bg-[color:var(--background)] text-[color:var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[color:var(--primary)]"
-            />
-          </div>
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="estimated_labor_cost">Labor Cost</Label>
-          <div className="relative">
-            <span className="absolute left-3 top-2.5 text-[color:var(--foreground)]">$</span>
-            <input
-              id="estimated_labor_cost"
-              type="number"
-              step="0.01"
-              value={formData.estimated_labor_cost}
-              onChange={handleChange('estimated_labor_cost')}
-              disabled={loading}
-              placeholder="0.00"
-              className="w-full pl-8 pr-3 py-2 border border-[color:var(--border)] rounded-lg bg-[color:var(--background)] text-[color:var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[color:var(--primary)]"
-            />
-          </div>
-        </div>
-      </div>
-
-      <div className="flex gap-3 pt-4">
-        <Button
-          type="submit"
-          variant="primary"
-          disabled={loading}
-          className="flex-1"
-        >
-          {loading ? 'Creating...' : 'Create Visit'}
-        </Button>
-        <Button
-          type="button"
-          variant="secondary"
-          onClick={onCancel}
-          disabled={loading}
-          className="flex-1"
-        >
-          Cancel
-        </Button>
       </div>
     </form>
   );

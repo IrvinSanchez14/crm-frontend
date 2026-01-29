@@ -26,11 +26,23 @@ const ProjectsPage = lazy(() =>
 const ProjectCategoriesPage = lazy(() => 
   import('./features/project-categories').then((module) => ({ default: module.ProjectCategoriesPage }))
 );
-const VisitsPage = lazy(() => 
+const VisitsPage = lazy(() =>
   import('./features/visits').then((module) => ({ default: module.VisitsPage }))
 );
-const BudgetsListPage = lazy(() => 
+const VisitDetailPage = lazy(() =>
+  import('./features/visits').then((module) => ({ default: module.VisitDetailPage }))
+);
+const BudgetsListPage = lazy(() =>
   import('./features/budgets').then((module) => ({ default: module.BudgetsListPage }))
+);
+const RenderingsPage = lazy(() =>
+  import('./features/renderings').then((module) => ({ default: module.RenderingsPage }))
+);
+const RenderingDetailPage = lazy(() =>
+  import('./features/renderings').then((module) => ({ default: module.RenderingDetailPage }))
+);
+const CreateRenderingPage = lazy(() =>
+  import('./features/renderings').then((module) => ({ default: module.CreateRenderingPage }))
 );
 
 // Loading fallback component
@@ -94,10 +106,42 @@ function App() {
             }
           />
           <Route
+            path="/visits/:id"
+            element={
+              <ProtectedRoute>
+                <VisitDetailPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/budgets"
             element={
               <ProtectedRoute>
                 <BudgetsListPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/renderings"
+            element={
+              <ProtectedRoute>
+                <RenderingsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/renderings/create"
+            element={
+              <ProtectedRoute>
+                <CreateRenderingPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/renderings/:id"
+            element={
+              <ProtectedRoute>
+                <RenderingDetailPage />
               </ProtectedRoute>
             }
           />
