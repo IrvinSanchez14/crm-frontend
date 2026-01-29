@@ -63,7 +63,7 @@ export function CreateRenderingForm({
   visits,
   budgets,
   onSuccess,
-  onCancel,
+  onCancel: _onCancel,
   onLoadingChange
 }: CreateRenderingFormProps) {
   const { user } = useAuth();

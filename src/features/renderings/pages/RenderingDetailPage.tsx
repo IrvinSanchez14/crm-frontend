@@ -25,7 +25,6 @@ import {
   uploadImage,
   type RenderingDetail,
   type RenderingUpdate,
-  type RenderingImage,
   type RenderingItem,
   type RenderingImageCreate,
   type RenderingItemCreate,

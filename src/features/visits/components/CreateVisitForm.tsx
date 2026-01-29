@@ -61,7 +61,7 @@ export function CreateVisitFormFooter({
 export function CreateVisitForm({
   projects,
   onSuccess,
-  onCancel,
+  onCancel: _onCancel,
   onLoadingChange
 }: CreateVisitFormProps) {
   const { user } = useAuth();
