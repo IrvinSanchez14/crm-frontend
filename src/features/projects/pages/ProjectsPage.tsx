@@ -13,8 +13,10 @@ import { getProjects, getClients, type ProjectDetail, type Client } from '../../
 import { decodeJwt } from '../../../core/utils/jwt.utils';
 import { CreateProjectForm } from '../components/CreateProjectForm';
 import { ProjectDetailForm } from '../components/ProjectDetailForm';
+import { useTranslation } from '../../../i18n';
 
 export function ProjectsPage() {
+  const { t } = useTranslation();
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -89,15 +91,13 @@ export function ProjectsPage() {
     }
   }, [getCompanyId, selectedClientId]);
 
-  // Fetch clients on mount
+  // Fetch clients and projects in parallel on mount
   useEffect(() => {
-    fetchClients();
-  }, [fetchClients]);
-
-  // Fetch projects when client filter changes
-  useEffect(() => {
-    fetchProjects();
-  }, [fetchProjects]);
+    const loadData = async () => {
+      await Promise.all([fetchClients(), fetchProjects()]);
+    };
+    loadData();
+  }, [fetchClients, fetchProjects]);
 
   // Memoize logout handler to prevent unnecessary re-renders
   const handleLogout = useCallback(() => {
@@ -122,10 +122,8 @@ export function ProjectsPage() {
   }, []);
 
   const openProjectDetail = useCallback((project: ProjectDetail) => {
-    setRightSidebarMode('detail');
-    setSelectedProject(project);
-    setIsRightSidebarOpen(true);
-  }, []);
+    navigate(`/projects/${project.id}/edit`);
+  }, [navigate]);
 
   const closeRightSidebar = useCallback(() => {
     setIsRightSidebarOpen(false);
@@ -155,31 +153,17 @@ export function ProjectsPage() {
     });
   }, []);
 
-  // Format currency
-  const formatCurrency = useCallback((amount: string | null) => {
-    if (!amount) return '—';
-    const num = parseFloat(amount);
-    if (isNaN(num)) return '—';
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 2,
-    }).format(num);
-  }, []);
-
   // Format status
   const formatStatus = useCallback((status: string) => {
     const statusMap: Record<string, string> = {
-      lead: 'Lead',
-      quoted: 'Quoted',
-      approved: 'Approved',
-      in_progress: 'In Progress',
-      completed: 'Completed',
-      cancelled: 'Cancelled',
-      on_hold: 'On Hold',
+      pending: t('projects:statuses.pending'),
+      in_progress: t('projects:statuses.in_progress'),
+      completed: t('projects:statuses.completed'),
+      cancelled: t('projects:statuses.cancelled'),
+      on_hold: t('projects:statuses.on_hold'),
     };
     return statusMap[status] || status;
-  }, []);
+  }, [t]);
 
   // Get status badge color
   const getStatusColor = useCallback((status: string) => {
@@ -200,12 +184,12 @@ export function ProjectsPage() {
     () => [
       {
         key: 'name',
-        label: 'Project Name',
-        span: 2,
+        label: t('projects:name'),
+        span: 3,
       },
       {
         key: 'client',
-        label: 'Client',
+        label: t('projects:client'),
         span: 2,
         render: (project, _isSelected) => (
           <Text
@@ -218,7 +202,7 @@ export function ProjectsPage() {
       },
       {
         key: 'category',
-        label: 'Category',
+        label: t('projects:category'),
         span: 2,
         render: (project, _isSelected) => (
           <Text
@@ -231,8 +215,8 @@ export function ProjectsPage() {
       },
       {
         key: 'status',
-        label: 'Status',
-        span: 2,
+        label: t('projects:status'),
+        span: 1,
         render: (project, _isSelected) => (
           <span
             className={cn(
@@ -245,22 +229,9 @@ export function ProjectsPage() {
         ),
       },
       {
-        key: 'estimated_budget',
-        label: 'Budget',
-        span: 1,
-        render: (project, _isSelected) => (
-          <Text
-            size="sm"
-            className="truncate font-normal text-gray-700 dark:text-gray-300"
-          >
-            {formatCurrency(project.estimated_budget)}
-          </Text>
-        ),
-      },
-      {
         key: 'start_date',
-        label: 'Start Date',
-        span: 1,
+        label: t('projects:startDate'),
+        span: 2,
         render: (project, _isSelected) => (
           <Text
             size="sm"
@@ -272,7 +243,7 @@ export function ProjectsPage() {
       },
       {
         key: 'created_at',
-        label: 'Created',
+        label: t('common:table.created'),
         span: 1,
         render: (project, _isSelected) => (
           <Text
@@ -285,9 +256,9 @@ export function ProjectsPage() {
       },
       {
         key: 'actions',
-        label: 'Actions',
+        label: t('common:table.actions'),
         span: 1,
-        align: 'center',
+        align: 'right',
         render: (project, _isSelected) => (
           <button
             onClick={() => openProjectDetail(project)}
@@ -312,7 +283,7 @@ export function ProjectsPage() {
         ),
       },
     ],
-    [formatDate, formatCurrency, formatStatus, getStatusColor, openProjectDetail]
+    [formatDate, formatStatus, getStatusColor, openProjectDetail, t]
   );
 
   return (
@@ -326,13 +297,13 @@ export function ProjectsPage() {
 
       <div
         className={cn(
-          'w-full pt-2',
+          'pt-2',
           'transition-all duration-500 ease-out',
           isSidebarOpen ? 'lg:ml-64' : 'lg:ml-0'
         )}
       >
         <div className="mb-4 flex items-center justify-between px-4">
-          <Heading level={1}>Projects</Heading>
+          <Heading level={1}>{t('projects:title')}</Heading>
           <div className="flex items-center gap-3">
             {/* Client Filter */}
             <select
@@ -340,7 +311,7 @@ export function ProjectsPage() {
               onChange={handleClientFilterChange}
               className="px-3 py-2 border border-[color:var(--border)] rounded-lg bg-[color:var(--background)] text-[color:var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[color:var(--primary)] text-sm"
             >
-              <option value="">All Clients</option>
+              <option value="">{t('common:form.allClients')}</option>
               {clients.map((client) => (
                 <option key={client.id} value={client.id}>
                   {client.name}
@@ -367,7 +338,7 @@ export function ProjectsPage() {
                   d="M12 4v16m8-8H4"
                 />
               </svg>
-              Add
+              {t('common:actions.add')}
             </Button>
           </div>
         </div>
@@ -379,7 +350,7 @@ export function ProjectsPage() {
           getRowId={(project) => project.id}
           loading={loading}
           error={error}
-          emptyMessage="No projects found"
+          emptyMessage={t('common:messages.noData')}
           selectedRows={selectedProjects}
           onSelectionChange={setSelectedProjects}
           selectable={true}
@@ -402,7 +373,7 @@ export function ProjectsPage() {
       <RightSidebar
         isOpen={isRightSidebarOpen}
         onClose={closeRightSidebar}
-        title={rightSidebarMode === 'create' ? 'Create Project' : `Project: ${selectedProject?.name}`}
+        title={rightSidebarMode === 'create' ? t('projects:createProject') : `${t('projects:projectDetails')}: ${selectedProject?.name}`}
       >
         {rightSidebarMode === 'create' ? (
           <CreateProjectForm onSuccess={handleProjectCreated} onCancel={closeRightSidebar} />

@@ -1,0 +1,52 @@
+{
+  "title": "Proyectos",
+  "createProject": "Crear Proyecto",
+  "editProject": "Editar Proyecto",
+  "detailsTab": "Detalles",
+  "attachmentsTab": "Archivos Adjuntos",
+  "editProject": "Editar Proyecto",
+  "deleteProject": "Eliminar Proyecto",
+  "projectDetails": "Detalles del Proyecto",
+  "name": "Nombre",
+  "description": "Descripción",
+  "client": "Cliente",
+  "category": "Categoría",
+  "status": "Estado",
+  "startDate": "Fecha de Inicio",
+  "endDate": "Fecha de Finalización",
+  "address": "Dirección",
+  "notes": "Notas",
+  "totalProjects": "Total de Proyectos",
+  "searchProjects": "Buscar proyectos...",
+  "searchClients": "Buscar un cliente...",
+  "createdBy": "Creado por",
+  "createdAt": "Creado el",
+  "attachments": {
+    "title": "Archivos Adjuntos",
+    "upload": "Subir Archivo",
+    "dragDrop": "Arrastra y suelta archivos aquí o haz clic para explorar",
+    "limit": "{{count}} / {{max}} archivos adjuntos",
+    "maxReached": "Límite máximo de archivos alcanzado ({{max}})",
+    "allowedTypes": "Permitidos: Imágenes (JPEG, PNG, WebP, GIF) y PDF",
+    "maxSize": "Tamaño máximo: 10MB",
+    "delete": "Eliminar archivo",
+    "confirmDelete": "¿Está seguro de que desea eliminar este archivo?",
+    "description": "Descripción (opcional)",
+    "uploadedBy": "Subido por",
+    "noAttachments": "Aún no hay archivos adjuntos",
+    "uploading": "Subiendo...",
+    "downloadFile": "Descargar archivo",
+    "editDescription": "Editar descripción",
+    "fileSize": "Tamaño"
+  },
+  "errors": {
+    "createFailed": "Error al crear el proyecto. Por favor, inténtelo de nuevo."
+  },
+  "statuses": {
+    "pending": "Pendiente",
+    "in_progress": "En Progreso",
+    "completed": "Completado",
+    "cancelled": "Cancelado",
+    "on_hold": "En Espera"
+  }
+}

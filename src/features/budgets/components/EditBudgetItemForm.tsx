@@ -16,17 +16,17 @@ import { useAuth } from '../../../shared/hooks/useAuth';
 
 export interface EditBudgetItemFormProps {
   budgetId: string;
+  categoryId: string;
   item: BudgetItemDetail;
   onSuccess?: () => void;
   onCancel: () => void;
 }
 
-export function EditBudgetItemForm({ budgetId, item, onSuccess, onCancel }: EditBudgetItemFormProps) {
+export function EditBudgetItemForm({ budgetId, categoryId, item, onSuccess, onCancel }: EditBudgetItemFormProps) {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [formData, setFormData] = useState<BudgetItemUpdate>({
-    section_name: item.section_name || undefined,
     description: item.description,
     unit: item.unit || undefined,
     quantity: item.quantity,
@@ -86,7 +86,7 @@ export function EditBudgetItemForm({ budgetId, item, onSuccess, onCancel }: Edit
         subtotal: subtotal.toString(),
       };
 
-      await updateBudgetItem(budgetId, item.id, itemData, companyId);
+      await updateBudgetItem(budgetId, categoryId, item.id, itemData, companyId);
       
       if (onSuccess) {
         onSuccess();
@@ -105,19 +105,6 @@ export function EditBudgetItemForm({ budgetId, item, onSuccess, onCancel }: Edit
           {error}
         </div>
       )}
-
-      <div className="space-y-2">
-        <Label htmlFor="edit_section_name" className="text-xs">Section</Label>
-        <input
-          id="edit_section_name"
-          type="text"
-          value={formData.section_name || ''}
-          onChange={handleChange('section_name')}
-          disabled={loading}
-          placeholder="Section name"
-          className="w-full px-2 py-1 text-sm border border-[color:var(--border)] rounded bg-[color:var(--background)] text-[color:var(--foreground)]"
-        />
-      </div>
 
       <div className="space-y-2">
         <Label htmlFor="edit_description" className="text-xs">Description *</Label>

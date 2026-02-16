@@ -18,11 +18,12 @@ import { useAuth } from '../../../shared/hooks/useAuth';
 
 export interface AddBudgetItemFormProps {
   budgetId: string;
+  categoryId: string;
   onSuccess?: () => void;
   onCancel: () => void;
 }
 
-export function AddBudgetItemForm({ budgetId, onSuccess, onCancel }: AddBudgetItemFormProps) {
+export function AddBudgetItemForm({ budgetId, categoryId, onSuccess, onCancel }: AddBudgetItemFormProps) {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -30,7 +31,6 @@ export function AddBudgetItemForm({ budgetId, onSuccess, onCancel }: AddBudgetIt
   const [loadingCatalog, setLoadingCatalog] = useState(true);
   const [useCatalogItem, setUseCatalogItem] = useState(false);
   const [formData, setFormData] = useState<BudgetItemCreate>({
-    section_name: '',
     description: '',
     unit: '',
     quantity: '1',
@@ -124,17 +124,15 @@ export function AddBudgetItemForm({ budgetId, onSuccess, onCancel }: AddBudgetIt
 
       const itemData: BudgetItemCreate = {
         ...formData,
-        section_name: formData.section_name || undefined,
         unit: formData.unit || undefined,
         subtotal: subtotal.toString(),
         catalog_item_id: formData.catalog_item_id || undefined,
       };
 
-      await addBudgetItem(budgetId, itemData, companyId);
+      await addBudgetItem(budgetId, categoryId, itemData, companyId);
       
       // Reset form
       setFormData({
-        section_name: '',
         description: '',
         unit: '',
         quantity: '1',
@@ -192,19 +190,6 @@ export function AddBudgetItemForm({ budgetId, onSuccess, onCancel }: AddBudgetIt
           </select>
         </div>
       )}
-
-      <div className="space-y-2">
-        <Label htmlFor="section_name">Section Name (optional)</Label>
-        <input
-          id="section_name"
-          type="text"
-          value={formData.section_name}
-          onChange={handleChange('section_name')}
-          disabled={loading}
-          placeholder="e.g., PROVISIONALS, DEMO, ELECTRICAL"
-          className="w-full px-3 py-2 border border-[color:var(--border)] rounded-lg bg-[color:var(--background)] text-[color:var(--foreground)]"
-        />
-      </div>
 
       <div className="space-y-2">
         <Label htmlFor="description">Description *</Label>

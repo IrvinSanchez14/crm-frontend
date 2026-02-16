@@ -165,7 +165,7 @@ export function VisitDetailPage() {
         description: `Budget created from visit: ${visit.title}`,
         visit_id: id,
         status: 'draft',
-        budget_items: [],
+        categories: [],
       };
       const newBudget = await createBudget(budgetData, companyId);
       setBudget(newBudget);

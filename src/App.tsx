@@ -6,6 +6,7 @@
 
 import { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { useTranslation } from './i18n';
 import { ProtectedRoute } from './shared/components/organisms/ProtectedRoute';
 import { NotificationContainer } from './shared/components/organisms/NotificationContainer';
 import { Text } from './shared/components/atoms/Text';
@@ -22,6 +23,9 @@ const ClientsPage = lazy(() =>
 );
 const ProjectsPage = lazy(() => 
   import('./features/projects').then((module) => ({ default: module.ProjectsPage }))
+);
+const ProjectEditPage = lazy(() => 
+  import('./features/projects').then((module) => ({ default: module.ProjectEditPage }))
 );
 const ProjectCategoriesPage = lazy(() => 
   import('./features/project-categories').then((module) => ({ default: module.ProjectCategoriesPage }))
@@ -47,9 +51,10 @@ const CreateRenderingPage = lazy(() =>
 
 // Loading fallback component
 function LoadingFallback() {
+  const { t } = useTranslation();
   return (
     <div className="min-h-screen flex items-center justify-center bg-[color:var(--background)]">
-      <Text variant="muted">Loading...</Text>
+      <Text variant="muted">{t('app.loading')}</Text>
     </div>
   );
 }
@@ -86,6 +91,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <ProjectsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/projects/:id/edit"
+            element={
+              <ProtectedRoute>
+                <ProjectEditPage />
               </ProtectedRoute>
             }
           />

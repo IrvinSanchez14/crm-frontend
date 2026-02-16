@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import type { FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../shared/hooks/useAuth';
+import { useTranslation } from '../../../i18n';
 import { Heading } from '../../../shared/components/atoms/Heading';
 import { Button } from '../../../shared/components/atoms/Button';
 import { FormField } from '../../../shared/components/molecules/FormField';
@@ -13,6 +14,7 @@ export function LoginPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { login, isAuthenticated } = useAuth();
   const navigate = useNavigate();
+  const { t } = useTranslation('auth');
 
   // Redirect if already authenticated (useEffect for side effects)
   useEffect(() => {
@@ -32,7 +34,7 @@ export function LoginPage() {
       navigate('/dashboard', { replace: true });
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : 'Failed to login. Please try again.'
+        err instanceof Error ? err.message : t('loginError')
       );
     } finally {
       setIsSubmitting(false);
@@ -48,7 +50,7 @@ export function LoginPage() {
     <div className="relative h-screen bg-[color:var(--background)]">
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full p-8 flex flex-col md:flex-row items-center justify-center gap-8">
         <div className="mb-6 text-center w-full md:w-80">
-          <Heading level={1}>Sign in</Heading>
+          <Heading level={1}>{t('title')}</Heading>
         </div>
         <form onSubmit={handleSubmit} className="space-y-4 w-full md:max-w-[600px]">
           {error && (
@@ -57,14 +59,14 @@ export function LoginPage() {
             </div>
           )}
           <FormField
-            label="Email"
+            label={t('email')}
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
           />
           <FormField
-            label="Password"
+            label={t('password')}
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
@@ -101,7 +103,7 @@ export function LoginPage() {
                 />
               </span>
             ) : (
-              'Sign in'
+              t('signIn')
             )}
           </Button>
         </form>

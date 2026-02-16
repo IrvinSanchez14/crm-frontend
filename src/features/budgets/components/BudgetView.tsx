@@ -8,17 +8,18 @@ import { Button } from '../../../shared/components/atoms/Button';
 import { Text } from '../../../shared/components/atoms/Text';
 import { Heading } from '../../../shared/components/atoms/Heading';
 import { cn } from '../../../core/utils/cn';
-import { 
+import {
   type BudgetDetail,
   type BudgetStatus,
+  type BudgetCategoryCreate,
   acceptBudget,
   updateBudget,
+  addBudgetCategory,
   type BudgetAcceptRequest
 } from '../../../infrastructure/api/api.client';
 import { decodeJwt } from '../../../core/utils/jwt.utils';
 import { useAuth } from '../../../shared/hooks/useAuth';
 import { BudgetItemsList } from './BudgetItemsList';
-import { AddBudgetItemForm } from './AddBudgetItemForm';
 
 export interface BudgetViewProps {
   budget: BudgetDetail;
@@ -30,7 +31,9 @@ export function BudgetView({ budget, onBudgetUpdated, onSuccess }: BudgetViewPro
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [showAddItem, setShowAddItem] = useState(false);
+  const [showAddCategory, setShowAddCategory] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState('');
+  const [newCategoryDescription, setNewCategoryDescription] = useState('');
 
   // Get company_id from JWT token
   const getCompanyId = (): string | null => {
@@ -61,6 +64,35 @@ export function BudgetView({ budget, onBudgetUpdated, onSuccess }: BudgetViewPro
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to accept budget');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAddCategory = async () => {
+    if (!newCategoryName.trim()) return;
+
+    const companyId = getCompanyId();
+    if (!companyId) {
+      setError('Company ID not found.');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError(null);
+      const categoryData: BudgetCategoryCreate = {
+        name: newCategoryName.trim(),
+        description: newCategoryDescription.trim() || undefined,
+        order_index: budget.budget_categories.length,
+      };
+      await addBudgetCategory(budget.id, categoryData, companyId);
+      setNewCategoryName('');
+      setNewCategoryDescription('');
+      setShowAddCategory(false);
+      if (onBudgetUpdated) onBudgetUpdated();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to add category');
     } finally {
       setLoading(false);
     }
@@ -120,33 +152,75 @@ export function BudgetView({ budget, onBudgetUpdated, onSuccess }: BudgetViewPro
         </div>
       </div>
 
-      {/* Budget Items */}
+      {/* Budget Categories */}
       <div>
         <div className="flex items-center justify-between mb-3">
-          <Heading variant="h4">Items</Heading>
+          <Heading variant="h4">Categories</Heading>
           {budget.status === 'draft' && (
             <Button
               variant="secondary"
               size="sm"
-              onClick={() => setShowAddItem(!showAddItem)}
+              onClick={() => setShowAddCategory(!showAddCategory)}
             >
-              {showAddItem ? 'Cancel' : 'Add Item'}
+              {showAddCategory ? 'Cancel' : 'Add Category'}
             </Button>
           )}
         </div>
 
-        {showAddItem && (
-          <div className="mb-4">
-            <AddBudgetItemForm
-              budgetId={budget.id}
-              onSuccess={() => {
-                setShowAddItem(false);
-                if (onBudgetUpdated) {
-                  onBudgetUpdated();
-                }
-              }}
-              onCancel={() => setShowAddItem(false)}
-            />
+        {showAddCategory && (
+          <div className="mb-4 p-4 border border-[color:var(--border)] rounded-lg bg-[color:var(--card)] space-y-3">
+            <div className="space-y-2">
+              <label htmlFor="category_name" className="text-sm font-medium text-[color:var(--foreground)]">
+                Category Name *
+              </label>
+              <input
+                id="category_name"
+                type="text"
+                value={newCategoryName}
+                onChange={(e) => setNewCategoryName(e.target.value)}
+                disabled={loading}
+                placeholder="e.g., Demolition, Electrical, Plumbing"
+                className="w-full px-3 py-2 border border-[color:var(--border)] rounded-lg bg-[color:var(--background)] text-[color:var(--foreground)]"
+              />
+            </div>
+            <div className="space-y-2">
+              <label htmlFor="category_description" className="text-sm font-medium text-[color:var(--foreground)]">
+                Description (optional)
+              </label>
+              <input
+                id="category_description"
+                type="text"
+                value={newCategoryDescription}
+                onChange={(e) => setNewCategoryDescription(e.target.value)}
+                disabled={loading}
+                placeholder="Brief description of this category"
+                className="w-full px-3 py-2 border border-[color:var(--border)] rounded-lg bg-[color:var(--background)] text-[color:var(--foreground)]"
+              />
+            </div>
+            <div className="flex gap-3">
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={handleAddCategory}
+                disabled={loading || !newCategoryName.trim()}
+                className="flex-1"
+              >
+                {loading ? 'Adding...' : 'Add Category'}
+              </Button>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => {
+                  setShowAddCategory(false);
+                  setNewCategoryName('');
+                  setNewCategoryDescription('');
+                }}
+                disabled={loading}
+                className="flex-1"
+              >
+                Cancel
+              </Button>
+            </div>
           </div>
         )}
 

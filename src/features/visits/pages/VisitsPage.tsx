@@ -101,15 +101,13 @@ export function VisitsPage() {
     }
   }, [getCompanyId, selectedProjectId, selectedStatus]);
 
-  // Fetch projects on mount
+  // Fetch projects and visits in parallel on mount
   useEffect(() => {
-    fetchProjects();
-  }, [fetchProjects]);
-
-  // Fetch visits when filters change
-  useEffect(() => {
-    fetchVisits();
-  }, [fetchVisits]);
+    const loadData = async () => {
+      await Promise.all([fetchProjects(), fetchVisits()]);
+    };
+    loadData();
+  }, [fetchProjects, fetchVisits]);
 
   // Table columns - simplified to 4 columns
   const columns: TableColumn<VisitDetail>[] = useMemo(

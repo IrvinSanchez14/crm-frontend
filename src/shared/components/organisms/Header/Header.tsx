@@ -1,6 +1,7 @@
 import { memo } from 'react';
 import { cn } from '../../../../core/utils/cn';
 import { UserMenu } from '../../molecules/UserMenu';
+import { LanguageSwitcher } from '../../molecules/LanguageSwitcher';
 import type { HeaderProps } from './Header.types';
 import logoImage from '../../../../assets/logo.webp';
 
@@ -62,8 +63,9 @@ export const Header = memo<HeaderProps>(
               />
             </div>
 
-            {/* Right Section - User Menu */}
+            {/* Right Section - Language Switcher & User Menu */}
             <div className="flex items-center gap-4">
+              <LanguageSwitcher />
               <UserMenu userName={userName} onLogout={onLogout} />
             </div>
           </div>

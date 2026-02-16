@@ -1,0 +1,52 @@
+{
+  "title": "Projects",
+  "createProject": "Create Project",
+  "editProject": "Edit Project",
+  "detailsTab": "Details",
+  "attachmentsTab": "Attachments",
+  "editProject": "Edit Project",
+  "deleteProject": "Delete Project",
+  "projectDetails": "Project Details",
+  "name": "Name",
+  "description": "Description",
+  "client": "Client",
+  "category": "Category",
+  "status": "Status",
+  "startDate": "Start Date",
+  "endDate": "End Date",
+  "address": "Address",
+  "notes": "Notes",
+  "totalProjects": "Total Projects",
+  "searchProjects": "Search projects...",
+  "searchClients": "Search for a client...",
+  "createdBy": "Created by",
+  "createdAt": "Created at",
+  "attachments": {
+    "title": "Attachments",
+    "upload": "Upload Attachment",
+    "dragDrop": "Drag and drop files here or click to browse",
+    "limit": "{{count}} / {{max}} attachments",
+    "maxReached": "Maximum attachments reached ({{max}})",
+    "allowedTypes": "Allowed: Images (JPEG, PNG, WebP, GIF) and PDF",
+    "maxSize": "Maximum size: 10MB",
+    "delete": "Delete attachment",
+    "confirmDelete": "Are you sure you want to delete this attachment?",
+    "description": "Description (optional)",
+    "uploadedBy": "Uploaded by",
+    "noAttachments": "No attachments yet",
+    "uploading": "Uploading...",
+    "downloadFile": "Download file",
+    "editDescription": "Edit description",
+    "fileSize": "Size"
+  },
+  "errors": {
+    "createFailed": "Failed to create project. Please try again."
+  },
+  "statuses": {
+    "pending": "Pending",
+    "in_progress": "In Progress",
+    "completed": "Completed",
+    "cancelled": "Cancelled",
+    "on_hold": "On Hold"
+  }
+}

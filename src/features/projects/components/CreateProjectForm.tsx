@@ -18,7 +18,7 @@ import {
 } from '../../../infrastructure/api/api.client';
 import { decodeJwt } from '../../../core/utils/jwt.utils';
 import { useAuth } from '../../../shared/hooks/useAuth';
-import { formatCurrencyInput, formatCurrencyDisplay } from '../../../core/utils/currency.utils';
+import { useTranslation } from '../../../i18n';
 
 export interface CreateProjectFormProps {
   onSuccess?: () => void;
@@ -26,6 +26,7 @@ export interface CreateProjectFormProps {
 }
 
 export function CreateProjectForm({ onSuccess, onCancel }: CreateProjectFormProps) {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -37,11 +38,7 @@ export function CreateProjectForm({ onSuccess, onCancel }: CreateProjectFormProp
     name: '',
     description: '',
     status: 'lead',
-    estimated_budget: '',
-    actual_cost: '',
     start_date: '',
-    estimated_completion_date: '',
-    actual_completion_date: '',
     address: '',
     client_id: '',
     category_id: '',
@@ -134,11 +131,7 @@ export function CreateProjectForm({ onSuccess, onCancel }: CreateProjectFormProp
         name: formData.name.trim(),
         description: formData.description?.trim() || undefined,
         status: formData.status as any,
-        estimated_budget: formData.estimated_budget?.trim() || undefined,
-        actual_cost: formData.actual_cost?.trim() || undefined,
         start_date: formData.start_date || undefined,
-        estimated_completion_date: formData.estimated_completion_date || undefined,
-        actual_completion_date: formData.actual_completion_date || undefined,
         address: formData.address?.trim() || undefined,
         client_id: formData.client_id,
         category_id: formData.category_id,
@@ -151,11 +144,7 @@ export function CreateProjectForm({ onSuccess, onCancel }: CreateProjectFormProp
         name: '',
         description: '',
         status: 'lead',
-        estimated_budget: '',
-        actual_cost: '',
         start_date: '',
-        estimated_completion_date: '',
-        actual_completion_date: '',
         address: '',
         client_id: '',
         category_id: '',
@@ -166,7 +155,7 @@ export function CreateProjectForm({ onSuccess, onCancel }: CreateProjectFormProp
         onSuccess();
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create project. Please try again.');
+      setError(err instanceof Error ? err.message : t('projects:errors.createFailed'));
     } finally {
       setLoading(false);
     }
@@ -175,7 +164,7 @@ export function CreateProjectForm({ onSuccess, onCancel }: CreateProjectFormProp
   if (loadingData) {
     return (
       <div className="flex items-center justify-center h-64">
-        <p className="text-sm text-[color:var(--muted-foreground)]">Loading form data...</p>
+        <p className="text-sm text-[color:var(--muted-foreground)]">{t('common:app.loading')}</p>
       </div>
     );
   }
@@ -191,17 +180,17 @@ export function CreateProjectForm({ onSuccess, onCancel }: CreateProjectFormProp
         )}
 
         <FormField
-          label="Project Name *"
+          label={`${t('projects:name')} *`}
           type="text"
           value={formData.name}
           onChange={handleChange('name')}
           required
           disabled={loading}
-          placeholder="Project name"
+          placeholder={t('projects:name')}
         />
 
         <Combobox
-          label="Client *"
+          label={`${t('projects:client')} *`}
           options={clientOptions}
           value={formData.client_id}
           onChange={(value) => {
@@ -209,15 +198,15 @@ export function CreateProjectForm({ onSuccess, onCancel }: CreateProjectFormProp
             if (clientError) setClientError(null);
             if (error) setError(null);
           }}
-          placeholder="Search for a client..."
+          placeholder={t('projects:searchClients')}
           required
           disabled={loading || loadingData}
           error={clientError || undefined}
-          emptyMessage="No clients found"
+          emptyMessage={t('common:messages.noData')}
         />
 
         <div className="space-y-2">
-          <Label htmlFor="category_id">Category *</Label>
+          <Label htmlFor="category_id">{t('projects:category')} *</Label>
           <select
             id="category_id"
             value={formData.category_id}
@@ -226,7 +215,7 @@ export function CreateProjectForm({ onSuccess, onCancel }: CreateProjectFormProp
             disabled={loading}
             className="w-full px-3 py-2 border border-[color:var(--border)] rounded-lg bg-[color:var(--background)] text-[color:var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[color:var(--primary)]"
           >
-            <option value="">Select a category</option>
+            <option value="">{t('common:form.selectOption')}</option>
             {categories.map((category) => (
               <option key={category.id} value={category.id}>
                 {category.name}
@@ -236,7 +225,7 @@ export function CreateProjectForm({ onSuccess, onCancel }: CreateProjectFormProp
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="status">Status</Label>
+          <Label htmlFor="status">{t('projects:status')}</Label>
           <select
             id="status"
             value={formData.status}
@@ -244,107 +233,41 @@ export function CreateProjectForm({ onSuccess, onCancel }: CreateProjectFormProp
             disabled={loading}
             className="w-full px-3 py-2 border border-[color:var(--border)] rounded-lg bg-[color:var(--background)] text-[color:var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[color:var(--primary)]"
           >
-            <option value="lead">Lead</option>
-            <option value="quoted">Quoted</option>
-            <option value="approved">Approved</option>
-            <option value="in_progress">In Progress</option>
-            <option value="completed">Completed</option>
-            <option value="cancelled">Cancelled</option>
-            <option value="on_hold">On Hold</option>
+            <option value="pending">{t('projects:statuses.pending')}</option>
+            <option value="in_progress">{t('projects:statuses.in_progress')}</option>
+            <option value="completed">{t('projects:statuses.completed')}</option>
+            <option value="cancelled">{t('projects:statuses.cancelled')}</option>
+            <option value="on_hold">{t('projects:statuses.on_hold')}</option>
           </select>
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="description">Description</Label>
+          <Label htmlFor="description">{t('projects:description')}</Label>
           <textarea
             id="description"
             value={formData.description}
             onChange={handleChange('description')}
             disabled={loading}
             rows={3}
-            placeholder="Project description"
+            placeholder={t('projects:description')}
             className="w-full px-3 py-2 border border-[color:var(--border)] rounded-lg bg-[color:var(--background)] text-[color:var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[color:var(--primary)] resize-none"
           />
         </div>
 
         <FormField
-          label="Address"
+          label={t('projects:address')}
           type="text"
           value={formData.address}
           onChange={handleChange('address')}
           disabled={loading}
-          placeholder="Project address"
+          placeholder={t('projects:address')}
         />
 
-        <div className="space-y-2">
-          <Label htmlFor="estimated_budget">Estimated Budget</Label>
-          <div className="relative">
-            <span className="absolute left-3 top-2.5 text-[color:var(--foreground)]">$</span>
-            <input
-              id="estimated_budget"
-              type="text"
-              inputMode="decimal"
-              value={formData.estimated_budget}
-              onChange={(e) => {
-                const formatted = formatCurrencyInput(e.target.value);
-                setFormData((prev) => ({ ...prev, estimated_budget: formatted }));
-                if (error) setError(null);
-              }}
-              disabled={loading}
-              placeholder="0.00"
-              className="w-full pl-8 pr-3 py-2 border border-[color:var(--border)] rounded-lg bg-[color:var(--background)] text-[color:var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[color:var(--primary)]"
-            />
-          </div>
-          <p className="text-xs text-[color:var(--muted-foreground)]">
-            {formData.estimated_budget ? `Display: ${formatCurrencyDisplay(formData.estimated_budget)}` : ''}
-          </p>
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="actual_cost">Actual Cost</Label>
-          <div className="relative">
-            <span className="absolute left-3 top-2.5 text-[color:var(--foreground)]">$</span>
-            <input
-              id="actual_cost"
-              type="text"
-              inputMode="decimal"
-              value={formData.actual_cost}
-              onChange={(e) => {
-                const formatted = formatCurrencyInput(e.target.value);
-                setFormData((prev) => ({ ...prev, actual_cost: formatted }));
-                if (error) setError(null);
-              }}
-              disabled={loading}
-              placeholder="0.00"
-              className="w-full pl-8 pr-3 py-2 border border-[color:var(--border)] rounded-lg bg-[color:var(--background)] text-[color:var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[color:var(--primary)]"
-            />
-          </div>
-          <p className="text-xs text-[color:var(--muted-foreground)]">
-            {formData.actual_cost ? `Display: ${formatCurrencyDisplay(formData.actual_cost)}` : ''}
-          </p>
-        </div>
-
         <FormField
-          label="Start Date"
+          label={t('projects:startDate')}
           type="date"
           value={formData.start_date}
           onChange={handleChange('start_date')}
-          disabled={loading}
-        />
-
-        <FormField
-          label="Estimated Completion Date"
-          type="date"
-          value={formData.estimated_completion_date}
-          onChange={handleChange('estimated_completion_date')}
-          disabled={loading}
-        />
-
-        <FormField
-          label="Actual Completion Date"
-          type="date"
-          value={formData.actual_completion_date}
-          onChange={handleChange('actual_completion_date')}
           disabled={loading}
         />
       </div>
@@ -359,7 +282,7 @@ export function CreateProjectForm({ onSuccess, onCancel }: CreateProjectFormProp
             disabled={loading}
             className="flex-1"
           >
-            Cancel
+            {t('common:actions.cancel')}
           </Button>
           <Button
             type="submit"
@@ -367,7 +290,7 @@ export function CreateProjectForm({ onSuccess, onCancel }: CreateProjectFormProp
             disabled={loading}
             className="flex-1"
           >
-            {loading ? 'Saving...' : 'Save'}
+            {loading ? t('common:app.loading') : t('common:actions.save')}
           </Button>
         </div>
       </div>

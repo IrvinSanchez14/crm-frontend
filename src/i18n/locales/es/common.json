@@ -1,0 +1,77 @@
+{
+  "app": {
+    "name": "CRM Construcción",
+    "loading": "Cargando...",
+    "error": "Error",
+    "success": "Éxito"
+  },
+  "actions": {
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "delete": "Eliminar",
+    "edit": "Editar",
+    "create": "Crear",
+    "search": "Buscar",
+    "filter": "Filtrar",
+    "export": "Exportar",
+    "import": "Importar",
+    "confirm": "Confirmar",
+    "close": "Cerrar",
+    "back": "Atrás",
+    "next": "Siguiente",
+    "previous": "Anterior",
+    "submit": "Enviar",
+    "add": "Agregar",
+    "remove": "Quitar",
+    "view": "Ver",
+    "download": "Descargar",
+    "upload": "Subir",
+    "refresh": "Actualizar",
+    "logout": "Cerrar Sesión"
+  },
+  "messages": {
+    "confirmDelete": "¿Está seguro de que desea eliminar este elemento?",
+    "noData": "No hay datos disponibles",
+    "errorLoading": "Error al cargar datos",
+    "savedSuccessfully": "Guardado exitosamente",
+    "deletedSuccessfully": "Eliminado exitosamente",
+    "createdSuccessfully": "Creado exitosamente",
+    "updatedSuccessfully": "Actualizado exitosamente",
+    "requiredField": "Este campo es obligatorio",
+    "invalidFormat": "Formato inválido",
+    "sessionExpired": "Su sesión ha expirado. Por favor, inicie sesión nuevamente."
+  },
+  "languages": {
+    "en": "Inglés",
+    "es": "Español",
+    "selectLanguage": "Seleccionar Idioma"
+  },
+  "navigation": {
+    "dashboard": "Panel",
+    "clients": "Clientes",
+    "projects": "Proyectos",
+    "projectCategories": "Categorías de Proyectos",
+    "visits": "Visitas",
+    "budgets": "Presupuestos",
+    "renderings": "Renders",
+    "settings": "Configuración",
+    "profile": "Perfil"
+  },
+  "table": {
+    "showing": "Mostrando",
+    "of": "de",
+    "entries": "entradas",
+    "noResults": "No se encontraron resultados",
+    "actions": "Acciones",
+    "created": "Creado"
+  },
+  "form": {
+    "selectOption": "Seleccione una opción",
+    "searchPlaceholder": "Buscar...",
+    "datePlaceholder": "Seleccionar fecha",
+    "timePlaceholder": "Seleccionar hora",
+    "uploadFile": "Subir archivo",
+    "dropFile": "Suelte el archivo aquí o haga clic para subir",
+    "allClients": "Todos los Clientes"
+  }
+}

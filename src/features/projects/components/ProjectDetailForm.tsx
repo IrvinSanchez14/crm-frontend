@@ -17,7 +17,8 @@ import {
 } from '../../../infrastructure/api/api.client';
 import { decodeJwt } from '../../../core/utils/jwt.utils';
 import { useAuth } from '../../../shared/hooks/useAuth';
-import { formatCurrencyInput, formatCurrencyDisplay } from '../../../core/utils/currency.utils';
+import { useTranslation } from '../../../i18n';
+import { AttachmentSection } from './AttachmentSection';
 
 export interface ProjectDetailFormProps {
   project: ProjectDetail;
@@ -26,21 +27,19 @@ export interface ProjectDetailFormProps {
 }
 
 export function ProjectDetailForm({ project, onSuccess, onCancel }: ProjectDetailFormProps) {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [clients, setClients] = useState<Client[]>([]);
   const [categories, setCategories] = useState<ProjectCategory[]>([]);
   const [loadingData, setLoadingData] = useState(true);
+  const [activeTab, setActiveTab] = useState<'details' | 'attachments'>('details');
   const [formData, setFormData] = useState({
     name: project.name,
     description: project.description || '',
     status: project.status,
-    estimated_budget: project.estimated_budget || '',
-    actual_cost: project.actual_cost || '',
     start_date: project.start_date || '',
-    estimated_completion_date: project.estimated_completion_date || '',
-    actual_completion_date: project.actual_completion_date || '',
     address: project.address || '',
     client_id: project.client_id,
     category_id: project.category_id,
@@ -143,44 +142,74 @@ export function ProjectDetailForm({ project, onSuccess, onCancel }: ProjectDetai
   if (loadingData) {
     return (
       <div className="flex items-center justify-center h-64">
-        <p className="text-sm text-[color:var(--muted-foreground)]">Loading form data...</p>
+        <p className="text-sm text-[color:var(--muted-foreground)]">{t('common:app.loading')}</p>
       </div>
     );
   }
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col h-full">
+      {/* Tabs */}
+      <div className="border-b border-[color:var(--border)] px-6">
+        <div className="flex gap-4">
+          <button
+            type="button"
+            onClick={() => setActiveTab('details')}
+            className={`px-4 py-3 text-sm font-medium transition-colors border-b-2 ${
+              activeTab === 'details'
+                ? 'border-[color:var(--primary)] text-[color:var(--primary)]'
+                : 'border-transparent text-[color:var(--muted-foreground)] hover:text-[color:var(--foreground)]'
+            }`}
+          >
+            {t('projects:projectDetails')}
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('attachments')}
+            className={`px-4 py-3 text-sm font-medium transition-colors border-b-2 ${
+              activeTab === 'attachments'
+                ? 'border-[color:var(--primary)] text-[color:var(--primary)]'
+                : 'border-transparent text-[color:var(--muted-foreground)] hover:text-[color:var(--foreground)]'
+            }`}
+          >
+            {t('projects:attachments.title')}
+          </button>
+        </div>
+      </div>
+
       {/* Form Content */}
       <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
-        {error && (
-          <div className="p-3 rounded-lg bg-[color:var(--destructive)]/10 border border-[color:var(--destructive)]/20">
-            <p className="text-sm text-[color:var(--destructive)]">{error}</p>
-          </div>
-        )}
+        {activeTab === 'details' ? (
+          <>
+            {error && (
+              <div className="p-3 rounded-lg bg-[color:var(--destructive)]/10 border border-[color:var(--destructive)]/20">
+                <p className="text-sm text-[color:var(--destructive)]">{error}</p>
+              </div>
+            )}
 
         <FormField
-          label="Project Name *"
+          label={`${t('projects:name')} *`}
           type="text"
           value={formData.name}
           onChange={handleChange('name')}
           required
           disabled={loading}
-          placeholder="Project name"
+          placeholder={t('projects:name')}
         />
 
         <Combobox
-          label="Client *"
+          label={`${t('projects:client')} *`}
           options={clientOptions}
           value={formData.client_id}
           onChange={handleClientChange}
-          placeholder="Search for a client..."
+          placeholder={t('projects:searchClients')}
           required
           disabled={loading || loadingData}
-          emptyMessage="No clients found"
+          emptyMessage={t('common:messages.noData')}
         />
 
         <div className="space-y-2">
-          <Label htmlFor="category_id">Category *</Label>
+          <Label htmlFor="category_id">{t('projects:category')} *</Label>
           <select
             id="category_id"
             value={formData.category_id}
@@ -189,7 +218,7 @@ export function ProjectDetailForm({ project, onSuccess, onCancel }: ProjectDetai
             disabled={loading}
             className="w-full px-3 py-2 border border-[color:var(--border)] rounded-lg bg-[color:var(--background)] text-[color:var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[color:var(--primary)]"
           >
-            <option value="">Select a category</option>
+            <option value="">{t('common:form.selectOption')}</option>
             {categories.map((category) => (
               <option key={category.id} value={category.id}>
                 {category.name}
@@ -199,7 +228,7 @@ export function ProjectDetailForm({ project, onSuccess, onCancel }: ProjectDetai
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="status">Status</Label>
+          <Label htmlFor="status">{t('projects:status')}</Label>
           <select
             id="status"
             value={formData.status}
@@ -207,122 +236,56 @@ export function ProjectDetailForm({ project, onSuccess, onCancel }: ProjectDetai
             disabled={loading}
             className="w-full px-3 py-2 border border-[color:var(--border)] rounded-lg bg-[color:var(--background)] text-[color:var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[color:var(--primary)]"
           >
-            <option value="lead">Lead</option>
-            <option value="quoted">Quoted</option>
-            <option value="approved">Approved</option>
-            <option value="in_progress">In Progress</option>
-            <option value="completed">Completed</option>
-            <option value="cancelled">Cancelled</option>
-            <option value="on_hold">On Hold</option>
+            <option value="pending">{t('projects:statuses.pending')}</option>
+            <option value="in_progress">{t('projects:statuses.in_progress')}</option>
+            <option value="completed">{t('projects:statuses.completed')}</option>
+            <option value="cancelled">{t('projects:statuses.cancelled')}</option>
+            <option value="on_hold">{t('projects:statuses.on_hold')}</option>
           </select>
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="description">Description</Label>
+          <Label htmlFor="description">{t('projects:description')}</Label>
           <textarea
             id="description"
             value={formData.description}
             onChange={handleChange('description')}
             disabled={loading}
             rows={3}
-            placeholder="Project description"
+            placeholder={t('projects:description')}
             className="w-full px-3 py-2 border border-[color:var(--border)] rounded-lg bg-[color:var(--background)] text-[color:var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[color:var(--primary)] resize-none"
           />
         </div>
 
         <FormField
-          label="Address"
+          label={t('projects:address')}
           type="text"
           value={formData.address}
           onChange={handleChange('address')}
           disabled={loading}
-          placeholder="Project address"
+          placeholder={t('projects:address')}
         />
 
-        <div className="space-y-2">
-          <Label htmlFor="estimated_budget">Estimated Budget</Label>
-          <div className="relative">
-            <span className="absolute left-3 top-2.5 text-[color:var(--foreground)]">$</span>
-            <input
-              id="estimated_budget"
-              type="text"
-              inputMode="decimal"
-              value={formData.estimated_budget}
-              onChange={(e) => {
-                const formatted = formatCurrencyInput(e.target.value);
-                setFormData((prev) => ({ ...prev, estimated_budget: formatted }));
-                if (error) setError(null);
-              }}
-              disabled={loading}
-              placeholder="0.00"
-              className="w-full pl-8 pr-3 py-2 border border-[color:var(--border)] rounded-lg bg-[color:var(--background)] text-[color:var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[color:var(--primary)]"
-            />
-          </div>
-          <p className="text-xs text-[color:var(--muted-foreground)]">
-            {formData.estimated_budget ? `Display: ${formatCurrencyDisplay(formData.estimated_budget)}` : ''}
-          </p>
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="actual_cost">Actual Cost</Label>
-          <div className="relative">
-            <span className="absolute left-3 top-2.5 text-[color:var(--foreground)]">$</span>
-            <input
-              id="actual_cost"
-              type="text"
-              inputMode="decimal"
-              value={formData.actual_cost}
-              onChange={(e) => {
-                const formatted = formatCurrencyInput(e.target.value);
-                setFormData((prev) => ({ ...prev, actual_cost: formatted }));
-                if (error) setError(null);
-              }}
-              disabled={loading}
-              placeholder="0.00"
-              className="w-full pl-8 pr-3 py-2 border border-[color:var(--border)] rounded-lg bg-[color:var(--background)] text-[color:var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[color:var(--primary)]"
-            />
-          </div>
-          <p className="text-xs text-[color:var(--muted-foreground)]">
-            {formData.actual_cost ? `Display: ${formatCurrencyDisplay(formData.actual_cost)}` : ''}
-          </p>
-        </div>
-
         <FormField
-          label="Start Date"
+          label={t('projects:startDate')}
           type="date"
           value={formData.start_date}
           onChange={handleChange('start_date')}
           disabled={loading}
         />
 
-        <FormField
-          label="Estimated Completion Date"
-          type="date"
-          value={formData.estimated_completion_date}
-          onChange={handleChange('estimated_completion_date')}
-          disabled={loading}
-        />
-
-        <FormField
-          label="Actual Completion Date"
-          type="date"
-          value={formData.actual_completion_date}
-          onChange={handleChange('actual_completion_date')}
-          disabled={loading}
-        />
-
         {/* Created Info (Read-only) */}
         <div className="space-y-2 mt-6 pt-4 border-t border-[color:var(--border)]">
           <div className="text-xs font-semibold text-[color:var(--muted-foreground)] uppercase tracking-wide">
-            Project Information
+            {t('projects:projectDetails')}
           </div>
           <div className="space-y-1 text-sm">
             <p>
-              <span className="text-[color:var(--muted-foreground)]">Created by: </span>
+              <span className="text-[color:var(--muted-foreground)]">{t('projects:createdBy')}: </span>
               <span className="text-[color:var(--foreground)]">{project.created_by_name || '—'}</span>
             </p>
             <p>
-              <span className="text-[color:var(--muted-foreground)]">Created at: </span>
+              <span className="text-[color:var(--muted-foreground)]">{t('projects:createdAt')}: </span>
               <span className="text-[color:var(--foreground)]">
                 {new Date(project.created_at).toLocaleDateString('en-US', {
                   month: 'short',
@@ -335,6 +298,11 @@ export function ProjectDetailForm({ project, onSuccess, onCancel }: ProjectDetai
             </p>
           </div>
         </div>
+          </>
+        ) : (
+          /* Attachments Tab */
+          <AttachmentSection projectId={project.id} />
+        )}
       </div>
 
       {/* Footer with buttons */}
@@ -347,7 +315,7 @@ export function ProjectDetailForm({ project, onSuccess, onCancel }: ProjectDetai
             disabled={loading}
             className="flex-1"
           >
-            Cancel
+            {t('common:actions.cancel')}
           </Button>
           <Button
             type="submit"
@@ -355,7 +323,7 @@ export function ProjectDetailForm({ project, onSuccess, onCancel }: ProjectDetai
             disabled={loading}
             className="flex-1"
           >
-            {loading ? 'Saving...' : 'Save'}
+            {loading ? t('common:app.loading') : t('common:actions.save')}
           </Button>
         </div>
       </div>

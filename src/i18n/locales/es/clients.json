@@ -1,0 +1,20 @@
+{
+  "title": "Clientes",
+  "createClient": "Crear Cliente",
+  "editClient": "Editar Cliente",
+  "deleteClient": "Eliminar Cliente",
+  "clientDetails": "Detalles del Cliente",
+  "name": "Nombre",
+  "email": "Correo Electrónico",
+  "phone": "Teléfono",
+  "address": "Dirección",
+  "company": "Empresa",
+  "notes": "Notas",
+  "status": "Estado",
+  "active": "Activo",
+  "inactive": "Inactivo",
+  "createdAt": "Fecha de Creación",
+  "updatedAt": "Fecha de Actualización",
+  "totalClients": "Total de Clientes",
+  "searchClients": "Buscar clientes..."
+}

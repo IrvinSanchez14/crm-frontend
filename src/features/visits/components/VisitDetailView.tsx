@@ -120,7 +120,7 @@ export function VisitDetailView({ visit, onSuccess, onCancel: _onCancel }: Visit
         description: `Budget created from visit: ${visit.title}`,
         visit_id: visit.id,
         status: 'draft',
-        budget_items: [],
+        categories: [],
       };
       const newBudget = await createBudget(budgetData, companyId);
       setBudget(newBudget);

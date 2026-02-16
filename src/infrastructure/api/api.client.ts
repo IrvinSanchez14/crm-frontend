@@ -504,11 +504,7 @@ export interface Project {
   name: string;
   description: string | null;
   status: ProjectStatus;
-  estimated_budget: string | null;
-  actual_cost: string | null;
   start_date: string | null;
-  estimated_completion_date: string | null;
-  actual_completion_date: string | null;
   address: string | null;
   client_id: string;
   category_id: string;
@@ -538,15 +534,21 @@ export interface ProjectCreate {
   name: string;
   description?: string;
   status?: ProjectStatus;
-  estimated_budget?: string;
-  actual_cost?: string;
   start_date?: string;
-  estimated_completion_date?: string;
-  actual_completion_date?: string;
   address?: string;
   client_id: string;
   category_id: string;
   created_by_user_id?: string;
+}
+
+export interface ProjectUpdate {
+  name?: string;
+  description?: string;
+  status?: ProjectStatus;
+  start_date?: string;
+  address?: string;
+  client_id?: string;
+  category_id?: string;
 }
 
 /**
@@ -625,6 +627,135 @@ export async function createProject(
   const response = await apiClient.postPublic<Project, ProjectCreate>(
     `/projects/?${queryParams.toString()}`,
     projectData
+  );
+  return response.data;
+}
+
+export async function getProject(
+  projectId: string,
+  companyId: string
+): Promise<ProjectDetail> {
+  const queryParams = new URLSearchParams({
+    company_id: companyId,
+  });
+  
+  const response = await apiClient.getPublic<ProjectDetail>(
+    `/projects/${projectId}?${queryParams.toString()}`
+  );
+  return response.data;
+}
+
+export async function updateProject(
+  projectId: string,
+  projectData: ProjectUpdate,
+  companyId: string
+): Promise<Project> {
+  const queryParams = new URLSearchParams({
+    company_id: companyId,
+  });
+  
+  const response = await apiClient.putPublic<Project, ProjectUpdate>(
+    `/projects/${projectId}?${queryParams.toString()}`,
+    projectData
+  );
+  return response.data;
+}
+
+/**
+ * Project Attachment interfaces
+ */
+export interface ProjectAttachment {
+  id: string;
+  filename: string;
+  file_url: string;
+  file_type: string;
+  file_size: number;
+  description: string | null;
+  project_id: string;
+  uploaded_by_user_id: string | null;
+  uploaded_by_name: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ProjectAttachmentListResponse {
+  attachments: ProjectAttachment[];
+  total: number;
+  max_allowed: number;
+}
+
+export interface ProjectAttachmentUpdate {
+  description: string | null;
+}
+
+/**
+ * Project Attachments API methods
+ */
+export async function uploadProjectAttachment(
+  projectId: string,
+  file: File,
+  companyId: string,
+  description?: string
+): Promise<ProjectAttachment> {
+  const formData = new FormData();
+  formData.append('file', file);
+  
+  const queryParams = new URLSearchParams({ company_id: companyId });
+  if (description) {
+    queryParams.append('description', description);
+  }
+  
+  const response = await fetch(
+    `${API_BASE_URL}/projects/${projectId}/attachments?${queryParams.toString()}`,
+    {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${TokenService.getStoredTokens()?.access_token}`,
+      },
+      body: formData,
+    }
+  );
+  
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || 'Failed to upload attachment');
+  }
+  
+  return response.json();
+}
+
+export async function getProjectAttachments(
+  projectId: string,
+  companyId: string
+): Promise<ProjectAttachmentListResponse> {
+  const queryParams = new URLSearchParams({ company_id: companyId });
+  const response = await apiClient.getPublic<ProjectAttachmentListResponse>(
+    `/projects/${projectId}/attachments?${queryParams.toString()}`
+  );
+  return response.data;
+}
+
+export async function deleteProjectAttachment(
+  projectId: string,
+  attachmentId: string,
+  companyId: string
+): Promise<void> {
+  const queryParams = new URLSearchParams({ company_id: companyId });
+  await apiClient.deletePublic(
+    `/projects/${projectId}/attachments/${attachmentId}?${queryParams.toString()}`
+  );
+}
+
+export async function updateProjectAttachment(
+  projectId: string,
+  attachmentId: string,
+  data: ProjectAttachmentUpdate,
+  companyId: string
+): Promise<ProjectAttachment> {
+  const queryParams = new URLSearchParams({ company_id: companyId });
+  const response = await apiClient.putPublic<ProjectAttachment, ProjectAttachmentUpdate>(
+    `/projects/${projectId}/attachments/${attachmentId}?${queryParams.toString()}`,
+    data
   );
   return response.data;
 }
@@ -724,7 +855,7 @@ export type BudgetStatus =
 
 export interface BudgetItem {
   id: string;
-  section_name: string | null;
+  budget_category_id: string;
   description: string;
   unit: string | null;
   quantity: string;
@@ -732,7 +863,6 @@ export interface BudgetItem {
   subtotal: string;
   order_index: number;
   catalog_item_id: string | null;
-  budget_id: string;
   created_at: string;
   updated_at: string;
 }
@@ -755,12 +885,11 @@ export interface Budget {
 }
 
 export interface BudgetDetail extends Budget {
-  budget_items: BudgetItemDetail[];
+  budget_categories: BudgetCategoryDetail[];
   accepted_by_name: string | null;
 }
 
 export interface BudgetItemCreate {
-  section_name?: string;
   description: string;
   unit?: string;
   quantity: string;
@@ -776,11 +905,10 @@ export interface BudgetCreate {
   status?: BudgetStatus;
   total_amount?: string;
   visit_id: string;
-  budget_items?: BudgetItemCreate[];
+  categories?: BudgetCategoryCreate[];
 }
 
 export interface BudgetItemUpdate {
-  section_name?: string;
   description?: string;
   unit?: string;
   quantity?: string;
@@ -799,6 +927,69 @@ export interface BudgetUpdate {
 
 export interface BudgetAcceptRequest {
   accepted_by_user_id: string;
+}
+
+/**
+ * Category Profit interfaces (internal cost tracking)
+ */
+export interface CategoryProfit {
+  id: string;
+  budget_category_id: string;
+  provider_price: string;
+  delivery_cost: string;
+  profit_percentage: string;
+  total_price: string;
+  created_by_user_id: string | null;
+  created_by_name: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CategoryProfitCreate {
+  provider_price: string;
+  delivery_cost?: string;
+  profit_percentage: string;
+}
+
+export interface CategoryProfitUpdate {
+  provider_price?: string;
+  delivery_cost?: string;
+  profit_percentage?: string;
+}
+
+/**
+ * Budget Category interfaces
+ */
+export interface BudgetCategory {
+  id: string;
+  budget_id: string;
+  name: string;
+  description: string | null;
+  images: string[] | null;
+  order_index: number;
+  subtotal: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface BudgetCategoryDetail extends BudgetCategory {
+  budget_items: BudgetItemDetail[];
+  category_profit: CategoryProfit | null;
+}
+
+export interface BudgetCategoryCreate {
+  name: string;
+  description?: string;
+  images?: string[];
+  order_index?: number;
+  items?: BudgetItemCreate[];
+}
+
+export interface BudgetCategoryUpdate {
+  name?: string;
+  description?: string;
+  images?: string[];
+  order_index?: number;
 }
 
 /**
@@ -1002,14 +1193,59 @@ export async function updateBudget(
   return response.data;
 }
 
+/**
+ * Budget Category CRUD
+ */
+export async function addBudgetCategory(
+  budgetId: string,
+  categoryData: BudgetCategoryCreate,
+  company_id: string
+): Promise<BudgetCategoryDetail> {
+  const queryParams = new URLSearchParams({ company_id });
+  const response = await apiClient.postPublic<BudgetCategoryDetail, BudgetCategoryCreate>(
+    `/budgets/${budgetId}/categories?${queryParams.toString()}`,
+    categoryData
+  );
+  return response.data;
+}
+
+export async function updateBudgetCategory(
+  budgetId: string,
+  categoryId: string,
+  categoryData: BudgetCategoryUpdate,
+  company_id: string
+): Promise<BudgetCategoryDetail> {
+  const queryParams = new URLSearchParams({ company_id });
+  const response = await apiClient.putPublic<BudgetCategoryDetail, BudgetCategoryUpdate>(
+    `/budgets/${budgetId}/categories/${categoryId}?${queryParams.toString()}`,
+    categoryData
+  );
+  return response.data;
+}
+
+export async function deleteBudgetCategory(
+  budgetId: string,
+  categoryId: string,
+  company_id: string
+): Promise<void> {
+  const queryParams = new URLSearchParams({ company_id });
+  await apiClient.deletePublic(
+    `/budgets/${budgetId}/categories/${categoryId}?${queryParams.toString()}`
+  );
+}
+
+/**
+ * Budget Item CRUD (scoped to category)
+ */
 export async function addBudgetItem(
   budgetId: string,
+  categoryId: string,
   itemData: BudgetItemCreate,
   company_id: string
 ): Promise<BudgetItemDetail> {
   const queryParams = new URLSearchParams({ company_id });
   const response = await apiClient.postPublic<BudgetItemDetail, BudgetItemCreate>(
-    `/budgets/${budgetId}/items?${queryParams.toString()}`,
+    `/budgets/${budgetId}/categories/${categoryId}/items?${queryParams.toString()}`,
     itemData
   );
   return response.data;
@@ -1017,13 +1253,14 @@ export async function addBudgetItem(
 
 export async function updateBudgetItem(
   budgetId: string,
+  categoryId: string,
   itemId: string,
   itemData: BudgetItemUpdate,
   company_id: string
 ): Promise<BudgetItemDetail> {
   const queryParams = new URLSearchParams({ company_id });
   const response = await apiClient.putPublic<BudgetItemDetail, BudgetItemUpdate>(
-    `/budgets/${budgetId}/items/${itemId}?${queryParams.toString()}`,
+    `/budgets/${budgetId}/categories/${categoryId}/items/${itemId}?${queryParams.toString()}`,
     itemData
   );
   return response.data;
@@ -1031,12 +1268,41 @@ export async function updateBudgetItem(
 
 export async function deleteBudgetItem(
   budgetId: string,
+  categoryId: string,
   itemId: string,
   company_id: string
 ): Promise<void> {
   const queryParams = new URLSearchParams({ company_id });
   await apiClient.deletePublic(
-    `/budgets/${budgetId}/items/${itemId}?${queryParams.toString()}`
+    `/budgets/${budgetId}/categories/${categoryId}/items/${itemId}?${queryParams.toString()}`
+  );
+}
+
+/**
+ * Category Profit CRUD (internal cost tracking)
+ */
+export async function upsertCategoryProfit(
+  budgetId: string,
+  categoryId: string,
+  profitData: CategoryProfitCreate,
+  company_id: string
+): Promise<CategoryProfit> {
+  const queryParams = new URLSearchParams({ company_id });
+  const response = await apiClient.putPublic<CategoryProfit, CategoryProfitCreate>(
+    `/budgets/${budgetId}/categories/${categoryId}/profit?${queryParams.toString()}`,
+    profitData
+  );
+  return response.data;
+}
+
+export async function deleteCategoryProfit(
+  budgetId: string,
+  categoryId: string,
+  company_id: string
+): Promise<void> {
+  const queryParams = new URLSearchParams({ company_id });
+  await apiClient.deletePublic(
+    `/budgets/${budgetId}/categories/${categoryId}/profit?${queryParams.toString()}`
   );
 }
 
