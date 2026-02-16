@@ -112,6 +112,42 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* Custom scrollbar */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-gray-300) transparent;
+}
+
+.dark * {
+  scrollbar-color: var(--color-gray-700) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background-color: var(--color-gray-300);
+  border-radius: 3px;
+}
+
+.dark *::-webkit-scrollbar-thumb {
+  background-color: var(--color-gray-700);
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background-color: var(--color-gray-400);
+}
+
+.dark *::-webkit-scrollbar-thumb:hover {
+  background-color: var(--color-gray-600);
+}
+
 @keyframes dot-bounce {
   0%, 80%, 100% {
     transform: translateY(0);

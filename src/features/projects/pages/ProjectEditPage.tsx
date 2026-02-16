@@ -203,7 +203,10 @@ export function ProjectEditPage() {
       <div className="min-h-screen bg-[color:var(--background)]">
         <Header onMenuClick={toggleSidebar} onLogout={logout} />
         <Sidebar isOpen={isSidebarOpen} onClose={toggleSidebar} />
-        <main className="lg:ml-64 pt-16 min-h-screen">
+        <main className={cn(
+          'min-h-screen transition-all duration-500 ease-out',
+          isSidebarOpen ? 'lg:ml-64' : 'lg:ml-0'
+        )}>
           <div className="px-4 sm:px-6 lg:px-8 py-8">
             <Text variant="muted">{t('common:loading')}</Text>
           </div>
@@ -217,7 +220,10 @@ export function ProjectEditPage() {
       <div className="min-h-screen bg-[color:var(--background)]">
         <Header onMenuClick={toggleSidebar} onLogout={logout} />
         <Sidebar isOpen={isSidebarOpen} onClose={toggleSidebar} />
-        <main className="lg:ml-64 pt-16 min-h-screen">
+        <main className={cn(
+          'min-h-screen transition-all duration-500 ease-out',
+          isSidebarOpen ? 'lg:ml-64' : 'lg:ml-0'
+        )}>
           <div className="px-4 sm:px-6 lg:px-8 py-8">
             <Text className="text-red-500">{error || 'Project not found'}</Text>
             <Button onClick={() => navigate('/projects')} className="mt-4">
@@ -233,13 +239,16 @@ export function ProjectEditPage() {
     <div className="min-h-screen bg-[color:var(--background)]">
       <Header onMenuClick={toggleSidebar} onLogout={logout} />
       <Sidebar isOpen={isSidebarOpen} onClose={toggleSidebar} />
-      
-      <main className="lg:ml-64 pt-16 min-h-screen">
+
+      <main className={cn(
+        'min-h-screen transition-all duration-500 ease-out',
+        isSidebarOpen ? 'lg:ml-64' : 'lg:ml-0'
+      )}>
         <div className="px-4 sm:px-6 lg:px-8 py-8">
-          <div className="max-w-7xl mx-auto">
+          <div className="max-w-4xl mx-auto">
             {/* Header */}
-            <div className="mb-8">
-              <div className="flex items-center gap-4 mb-4">
+            <div className="mb-6">
+              <div className="flex items-center gap-4 mb-2">
                 <Button
                   variant="secondary"
                   onClick={() => navigate('/projects')}
@@ -260,9 +269,11 @@ export function ProjectEditPage() {
                   </svg>
                   {t('common:actions.back')}
                 </Button>
-                <Heading level={1}>{t('projects:editProject')}</Heading>
+                <div>
+                  <Heading level={1}>{t('projects:editProject')}</Heading>
+                  <Text variant="muted">{project.name}</Text>
+                </div>
               </div>
-              <Text variant="muted">{project.name}</Text>
             </div>
 
             {/* Tabs */}
@@ -271,10 +282,10 @@ export function ProjectEditPage() {
                 <button
                   onClick={() => setActiveTab('details')}
                   className={cn(
-                    'py-4 px-1 border-b-2 font-medium text-sm transition-colors',
+                    'py-3 px-1 border-b-2 font-medium text-sm transition-colors',
                     activeTab === 'details'
-                      ? 'border-blue-500 text-blue-600 dark:text-blue-400'
-                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
+                      ? 'border-[color:var(--primary)] text-[color:var(--primary)]'
+                      : 'border-transparent text-[color:var(--muted-foreground)] hover:text-[color:var(--foreground)] hover:border-[color:var(--border)]'
                   )}
                 >
                   {t('projects:detailsTab')}
@@ -282,10 +293,10 @@ export function ProjectEditPage() {
                 <button
                   onClick={() => setActiveTab('attachments')}
                   className={cn(
-                    'py-4 px-1 border-b-2 font-medium text-sm transition-colors',
+                    'py-3 px-1 border-b-2 font-medium text-sm transition-colors',
                     activeTab === 'attachments'
-                      ? 'border-blue-500 text-blue-600 dark:text-blue-400'
-                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
+                      ? 'border-[color:var(--primary)] text-[color:var(--primary)]'
+                      : 'border-transparent text-[color:var(--muted-foreground)] hover:text-[color:var(--foreground)] hover:border-[color:var(--border)]'
                   )}
                 >
                   {t('projects:attachmentsTab')}
@@ -295,100 +306,102 @@ export function ProjectEditPage() {
 
             {/* Tab Content */}
             {activeTab === 'details' ? (
-              <div className="max-w-2xl mx-auto">
+              <div className="rounded-lg border border-[color:var(--border)] bg-[color:var(--card)] p-6 sm:p-8">
                 <form onSubmit={handleSubmit} className="space-y-6">
-                <FormField
-                  label={t('projects:name')}
-                  id="name"
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) => handleInputChange('name', e.target.value)}
-                  required
-                  disabled={saving}
-                />
-
-                <FormField
-                  label={t('projects:description')}
-                  id="description"
-                  type="textarea"
-                  value={formData.description}
-                  onChange={(e) => handleInputChange('description', e.target.value)}
-                  disabled={saving}
-                />
-
-                <Combobox
-                  label={t('projects:client')}
-                  options={clientOptions}
-                  value={formData.client_id}
-                  onChange={(value) => handleInputChange('client_id', value)}
-                  placeholder={t('projects:selectClient')}
-                  emptyMessage={t('projects:noClientsFound')}
-                  disabled={loadingData || saving}
-                />
-
-                <Combobox
-                  label={t('projects:category')}
-                  options={categoryOptions}
-                  value={formData.category_id}
-                  onChange={(value) => handleInputChange('category_id', value)}
-                  placeholder={t('projects:selectCategory')}
-                  emptyMessage={t('projects:noCategoriesFound')}
-                  disabled={loadingData || saving}
-                />
-
-                <Combobox
-                  label={t('projects:status')}
-                  options={statusOptions}
-                  value={formData.status}
-                  onChange={(value) => handleInputChange('status', value)}
-                  placeholder={t('projects:selectStatus')}
-                  disabled={saving}
-                />
-
-                <FormField
-                  label={t('projects:startDate')}
-                  id="start_date"
-                  type="date"
-                  value={formData.start_date}
-                  onChange={(e) => handleInputChange('start_date', e.target.value)}
-                  disabled={saving}
-                />
-
-                <FormField
-                  label={t('projects:address')}
-                  id="address"
-                  type="text"
-                  value={formData.address}
-                  onChange={(e) => handleInputChange('address', e.target.value)}
-                  disabled={saving}
-                />
-
-                {error && (
-                  <div className="rounded-md bg-red-50 dark:bg-red-900/20 p-4">
-                    <Text className="text-sm text-red-800 dark:text-red-200">{error}</Text>
-                  </div>
-                )}
-
-                <div className="flex gap-3 pt-4">
-                  <Button type="submit" disabled={saving}>
-                    {saving ? t('common:actions.saving') : t('common:actions.save')}
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    onClick={() => navigate('/projects')}
+                  <FormField
+                    label={t('projects:name')}
+                    id="name"
+                    type="text"
+                    value={formData.name}
+                    onChange={(e) => handleInputChange('name', e.target.value)}
+                    required
                     disabled={saving}
-                  >
-                    {t('common:actions.cancel')}
-                  </Button>
-                </div>
-              </form>
-            </div>
-          ) : (
-            <div>
+                  />
+
+                  <FormField
+                    label={t('projects:description')}
+                    id="description"
+                    type="textarea"
+                    value={formData.description}
+                    onChange={(e) => handleInputChange('description', e.target.value)}
+                    disabled={saving}
+                  />
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    <Combobox
+                      label={t('projects:client')}
+                      options={clientOptions}
+                      value={formData.client_id}
+                      onChange={(value) => handleInputChange('client_id', value)}
+                      placeholder={t('projects:selectClient')}
+                      emptyMessage={t('projects:noClientsFound')}
+                      disabled={loadingData || saving}
+                    />
+
+                    <Combobox
+                      label={t('projects:category')}
+                      options={categoryOptions}
+                      value={formData.category_id}
+                      onChange={(value) => handleInputChange('category_id', value)}
+                      placeholder={t('projects:selectCategory')}
+                      emptyMessage={t('projects:noCategoriesFound')}
+                      disabled={loadingData || saving}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    <Combobox
+                      label={t('projects:status')}
+                      options={statusOptions}
+                      value={formData.status}
+                      onChange={(value) => handleInputChange('status', value)}
+                      placeholder={t('projects:selectStatus')}
+                      disabled={saving}
+                    />
+
+                    <FormField
+                      label={t('projects:startDate')}
+                      id="start_date"
+                      type="date"
+                      value={formData.start_date}
+                      onChange={(e) => handleInputChange('start_date', e.target.value)}
+                      disabled={saving}
+                    />
+                  </div>
+
+                  <FormField
+                    label={t('projects:address')}
+                    id="address"
+                    type="text"
+                    value={formData.address}
+                    onChange={(e) => handleInputChange('address', e.target.value)}
+                    disabled={saving}
+                  />
+
+                  {error && (
+                    <div className="rounded-md bg-red-50 dark:bg-red-900/20 p-4">
+                      <Text className="text-sm text-red-800 dark:text-red-200">{error}</Text>
+                    </div>
+                  )}
+
+                  <div className="flex gap-3 pt-2">
+                    <Button type="submit" disabled={saving}>
+                      {saving ? t('common:actions.saving') : t('common:actions.save')}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      onClick={() => navigate('/projects')}
+                      disabled={saving}
+                    >
+                      {t('common:actions.cancel')}
+                    </Button>
+                  </div>
+                </form>
+              </div>
+            ) : (
               <AttachmentSection projectId={id!} />
-            </div>
-          )}
+            )}
           </div>
         </div>
       </main>

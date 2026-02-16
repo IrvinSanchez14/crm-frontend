@@ -219,8 +219,7 @@ export const Sidebar = memo<SidebarProps>(({ isOpen, onClose, className }) => {
           'shadow-xl lg:shadow-none',
           'transform transition-transform duration-500 ease-out',
           'flex flex-col',
-          // Mobile: slide in from left when open, hidden when closed
-          // Desktop: slide in from left when open, hidden when closed
+          // Slide in/out based on isOpen
           isOpen ? 'translate-x-0' : '-translate-x-full',
           className
         )}
