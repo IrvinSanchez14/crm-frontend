@@ -11,7 +11,6 @@ import { useAuth } from '../../../shared/hooks/useAuth';
 import { Heading } from '../../../shared/components/atoms/Heading';
 import { Text } from '../../../shared/components/atoms/Text';
 import { Button } from '../../../shared/components/atoms/Button';
-import { Label } from '../../../shared/components/atoms/Label/Label';
 import { FormField } from '../../../shared/components/molecules/FormField';
 import { Combobox, type ComboboxOption } from '../../../shared/components/molecules/Combobox';
 import { cn } from '../../../core/utils/cn';
@@ -47,7 +46,7 @@ export function ProjectEditPage() {
   const [formData, setFormData] = useState({
     name: '',
     description: '',
-    status: 'pending' as const,
+    status: '' as string,
     start_date: '',
     address: '',
     client_id: '',
@@ -64,8 +63,9 @@ export function ProjectEditPage() {
   // Convert clients to combobox options
   const clientOptions: ComboboxOption[] = useMemo(
     () => [
-      { label: t('common:form.allClients'), value: '' },
+      { id: '', label: t('common:form.allClients'), value: '' },
       ...clients.map((client) => ({
+        id: client.id,
         label: client.name,
         value: client.id,
       })),
@@ -76,8 +76,9 @@ export function ProjectEditPage() {
   // Convert categories to combobox options
   const categoryOptions: ComboboxOption[] = useMemo(
     () => [
-      { label: t('projects:selectCategory'), value: '' },
+      { id: '', label: t('projects:selectCategory'), value: '' },
       ...categories.map((category) => ({
+        id: category.id,
         label: category.name,
         value: category.id,
       })),
@@ -88,11 +89,13 @@ export function ProjectEditPage() {
   // Status options
   const statusOptions: ComboboxOption[] = useMemo(
     () => [
-      { label: t('projects:statuses.pending'), value: 'pending' },
-      { label: t('projects:statuses.in_progress'), value: 'in_progress' },
-      { label: t('projects:statuses.completed'), value: 'completed' },
-      { label: t('projects:statuses.cancelled'), value: 'cancelled' },
-      { label: t('projects:statuses.on_hold'), value: 'on_hold' },
+      { id: 'lead', label: t('projects:statuses.lead'), value: 'lead' },
+      { id: 'quoted', label: t('projects:statuses.quoted'), value: 'quoted' },
+      { id: 'approved', label: t('projects:statuses.approved'), value: 'approved' },
+      { id: 'in_progress', label: t('projects:statuses.in_progress'), value: 'in_progress' },
+      { id: 'completed', label: t('projects:statuses.completed'), value: 'completed' },
+      { id: 'cancelled', label: t('projects:statuses.cancelled'), value: 'cancelled' },
+      { id: 'on_hold', label: t('projects:statuses.on_hold'), value: 'on_hold' },
     ],
     [t]
   );
@@ -171,7 +174,7 @@ export function ProjectEditPage() {
       const updateData: ProjectUpdate = {
         name: formData.name,
         description: formData.description || undefined,
-        status: formData.status,
+        status: (formData.status || undefined) as ProjectUpdate['status'],
         start_date: formData.start_date || undefined,
         address: formData.address || undefined,
         client_id: formData.client_id,
@@ -198,7 +201,7 @@ export function ProjectEditPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-[color:var(--background)]">
-        <Header onMenuClick={toggleSidebar} user={user} onLogout={logout} />
+        <Header onMenuClick={toggleSidebar} onLogout={logout} />
         <Sidebar isOpen={isSidebarOpen} onClose={toggleSidebar} />
         <main className="lg:ml-64 pt-16 min-h-screen">
           <div className="px-4 sm:px-6 lg:px-8 py-8">
@@ -212,7 +215,7 @@ export function ProjectEditPage() {
   if (error || !project) {
     return (
       <div className="min-h-screen bg-[color:var(--background)]">
-        <Header onMenuClick={toggleSidebar} user={user} onLogout={logout} />
+        <Header onMenuClick={toggleSidebar} onLogout={logout} />
         <Sidebar isOpen={isSidebarOpen} onClose={toggleSidebar} />
         <main className="lg:ml-64 pt-16 min-h-screen">
           <div className="px-4 sm:px-6 lg:px-8 py-8">
@@ -228,7 +231,7 @@ export function ProjectEditPage() {
 
   return (
     <div className="min-h-screen bg-[color:var(--background)]">
-      <Header onMenuClick={toggleSidebar} user={user} onLogout={logout} />
+      <Header onMenuClick={toggleSidebar} onLogout={logout} />
       <Sidebar isOpen={isSidebarOpen} onClose={toggleSidebar} />
       
       <main className="lg:ml-64 pt-16 min-h-screen">
@@ -238,7 +241,7 @@ export function ProjectEditPage() {
             <div className="mb-8">
               <div className="flex items-center gap-4 mb-4">
                 <Button
-                  variant="outline"
+                  variant="secondary"
                   onClick={() => navigate('/projects')}
                   className="flex items-center gap-2"
                 >
@@ -313,40 +316,34 @@ export function ProjectEditPage() {
                   disabled={saving}
                 />
 
-                <div className="space-y-2">
-                  <Label htmlFor="client_id">{t('projects:client')}</Label>
-                  <Combobox
-                    options={clientOptions}
-                    value={formData.client_id}
-                    onChange={(value) => handleInputChange('client_id', value)}
-                    placeholder={t('projects:selectClient')}
-                    emptyMessage={t('projects:noClientsFound')}
-                    disabled={loadingData || saving}
-                  />
-                </div>
+                <Combobox
+                  label={t('projects:client')}
+                  options={clientOptions}
+                  value={formData.client_id}
+                  onChange={(value) => handleInputChange('client_id', value)}
+                  placeholder={t('projects:selectClient')}
+                  emptyMessage={t('projects:noClientsFound')}
+                  disabled={loadingData || saving}
+                />
 
-                <div className="space-y-2">
-                  <Label htmlFor="category_id">{t('projects:category')}</Label>
-                  <Combobox
-                    options={categoryOptions}
-                    value={formData.category_id}
-                    onChange={(value) => handleInputChange('category_id', value)}
-                    placeholder={t('projects:selectCategory')}
-                    emptyMessage={t('projects:noCategoriesFound')}
-                    disabled={loadingData || saving}
-                  />
-                </div>
+                <Combobox
+                  label={t('projects:category')}
+                  options={categoryOptions}
+                  value={formData.category_id}
+                  onChange={(value) => handleInputChange('category_id', value)}
+                  placeholder={t('projects:selectCategory')}
+                  emptyMessage={t('projects:noCategoriesFound')}
+                  disabled={loadingData || saving}
+                />
 
-                <div className="space-y-2">
-                  <Label htmlFor="status">{t('projects:status')}</Label>
-                  <Combobox
-                    options={statusOptions}
-                    value={formData.status}
-                    onChange={(value) => handleInputChange('status', value)}
-                    placeholder={t('projects:selectStatus')}
-                    disabled={saving}
-                  />
-                </div>
+                <Combobox
+                  label={t('projects:status')}
+                  options={statusOptions}
+                  value={formData.status}
+                  onChange={(value) => handleInputChange('status', value)}
+                  placeholder={t('projects:selectStatus')}
+                  disabled={saving}
+                />
 
                 <FormField
                   label={t('projects:startDate')}
@@ -378,7 +375,7 @@ export function ProjectEditPage() {
                   </Button>
                   <Button
                     type="button"
-                    variant="outline"
+                    variant="secondary"
                     onClick={() => navigate('/projects')}
                     disabled={saving}
                   >

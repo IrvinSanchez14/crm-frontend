@@ -55,8 +55,6 @@ export function AttachmentItem({
   const [editedDescription, setEditedDescription] = useState(attachment.description || '');
 
   const isImage = attachment.file_type.startsWith('image/');
-  const isPDF = attachment.file_type === 'application/pdf';
-
   const handleDelete = async () => {
     if (!showDeleteConfirm) {
       setShowDeleteConfirm(true);
