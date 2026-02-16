@@ -156,6 +156,9 @@ export function ProjectsPage() {
   // Format status
   const formatStatus = useCallback((status: string) => {
     const statusMap: Record<string, string> = {
+      lead: t('projects:statuses.lead'),
+      quoted: t('projects:statuses.quoted'),
+      approved: t('projects:statuses.approved'),
       pending: t('projects:statuses.pending'),
       in_progress: t('projects:statuses.in_progress'),
       completed: t('projects:statuses.completed'),
@@ -263,10 +266,10 @@ export function ProjectsPage() {
           <button
             onClick={() => openProjectDetail(project)}
             className="inline-flex items-center justify-center w-8 h-8 rounded-lg hover:bg-[color:var(--muted)] transition-colors"
-            title="View project details"
+            title={t('projects:editProject')}
           >
             <svg
-              className="w-5 h-5 text-[color:var(--foreground)]"
+              className="w-4 h-4 text-[color:var(--muted-foreground)]"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -276,7 +279,7 @@ export function ProjectsPage() {
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 strokeWidth={2}
-                d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
               />
             </svg>
           </button>

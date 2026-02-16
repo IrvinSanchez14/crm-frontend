@@ -43,6 +43,9 @@
     "createFailed": "Error al crear el proyecto. Por favor, inténtelo de nuevo."
   },
   "statuses": {
+    "lead": "Prospecto",
+    "quoted": "Cotizado",
+    "approved": "Aprobado",
     "pending": "Pendiente",
     "in_progress": "En Progreso",
     "completed": "Completado",

@@ -43,6 +43,9 @@
     "createFailed": "Failed to create project. Please try again."
   },
   "statuses": {
+    "lead": "Lead",
+    "quoted": "Quoted",
+    "approved": "Approved",
     "pending": "Pending",
     "in_progress": "In Progress",
     "completed": "Completed",
