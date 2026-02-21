@@ -1,31 +1,36 @@
 /**
- * Create Client Form Component
- * Form for creating a new client in the CRM system
+ * Edit Project Category Form Component
+ * Form for editing an existing project category
  */
 
 import { useState, type FormEvent } from 'react';
 import { FormField } from '../../../shared/components/molecules/FormField';
 import { Button } from '../../../shared/components/atoms/Button';
-import { createClient, type ClientCreate } from '../../../infrastructure/api/api.client';
+import { Label } from '../../../shared/components/atoms/Label/Label';
+import {
+  updateProjectCategory,
+  type ProjectCategory,
+  type ProjectCategoryUpdate,
+} from '../../../infrastructure/api/api.client';
 import { decodeJwt } from '../../../core/utils/jwt.utils';
 import { useAuth } from '../../../shared/hooks/useAuth';
 
-export interface CreateClientFormProps {
+export interface EditProjectCategoryFormProps {
+  category: ProjectCategory;
   onSuccess?: () => void;
   onCancel: () => void;
 }
 
-export function CreateClientForm({ onSuccess, onCancel }: CreateClientFormProps) {
+export function EditProjectCategoryForm({ category, onSuccess, onCancel }: EditProjectCategoryFormProps) {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [formData, setFormData] = useState<Omit<ClientCreate, 'company_id'>>({
-    name: '',
-    email: '',
-    phone: '',
+  const [formData, setFormData] = useState({
+    name: category.name,
+    description: category.description || '',
+    is_active: category.is_active,
   });
 
-  // Get company_id from JWT token
   const getCompanyId = (): string | null => {
     if (!user?.access_token) return null;
     const payload = decodeJwt(user.access_token);
@@ -33,10 +38,10 @@ export function CreateClientForm({ onSuccess, onCancel }: CreateClientFormProps)
   };
 
   const handleChange = (field: keyof typeof formData) => (
-    e: React.ChangeEvent<HTMLInputElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
-    setFormData((prev) => ({ ...prev, [field]: e.target.value }));
-    // Clear error when user starts typing
+    const value = e.target.type === 'checkbox' ? (e.target as HTMLInputElement).checked : e.target.value;
+    setFormData((prev) => ({ ...prev, [field]: value }));
     if (error) setError(null);
   };
 
@@ -50,35 +55,26 @@ export function CreateClientForm({ onSuccess, onCancel }: CreateClientFormProps)
       return;
     }
 
-    // Validate required fields
     if (!formData.name.trim()) {
-      setError('Please enter a client name.');
+      setError('Please enter a category name.');
       return;
     }
 
     try {
       setLoading(true);
-      const clientData: ClientCreate = {
+      const updateData: ProjectCategoryUpdate = {
         name: formData.name.trim(),
-        company_id: companyId,
-        email: formData.email?.trim() || undefined,
-        phone: formData.phone?.trim() || undefined,
+        description: formData.description?.trim() || undefined,
+        is_active: formData.is_active,
       };
 
-      await createClient(clientData);
-      
-      // Reset form
-      setFormData({
-        name: '',
-        email: '',
-        phone: '',
-      });
+      await updateProjectCategory(category.id, updateData, companyId);
 
       if (onSuccess) {
         onSuccess();
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create client. Please try again.');
+      setError(err instanceof Error ? err.message : 'Failed to update category. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -86,7 +82,6 @@ export function CreateClientForm({ onSuccess, onCancel }: CreateClientFormProps)
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col h-full">
-      {/* Form Content */}
       <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
         {error && (
           <div className="p-3 rounded-lg bg-[color:var(--destructive)]/10 border border-[color:var(--destructive)]/20">
@@ -95,36 +90,43 @@ export function CreateClientForm({ onSuccess, onCancel }: CreateClientFormProps)
         )}
 
         <FormField
-          label="Name *"
+          label="Category Name *"
           type="text"
           value={formData.name}
           onChange={handleChange('name')}
           required
           disabled={loading}
-          placeholder="Client name"
+          placeholder="e.g., Kitchen, Bathroom, Outside"
         />
 
-        <FormField
-          label="Email"
-          type="email"
-          value={formData.email}
-          onChange={handleChange('email')}
-          disabled={loading}
-          placeholder="client@example.com"
-        />
+        <div className="space-y-2">
+          <Label htmlFor="description">Description</Label>
+          <textarea
+            id="description"
+            value={formData.description}
+            onChange={handleChange('description')}
+            disabled={loading}
+            rows={3}
+            placeholder="Optional description for this category"
+            className="w-full px-3 py-2 border border-[color:var(--border)] rounded-lg bg-[color:var(--background)] text-[color:var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[color:var(--primary)] resize-none"
+          />
+        </div>
 
-        <FormField
-          label="Phone"
-          type="tel"
-          mask="(###) ###-####"
-          value={formData.phone}
-          onChange={handleChange('phone')}
-          disabled={loading}
-          placeholder="(555) 555-1234"
-        />
+        <div className="flex items-center gap-3">
+          <input
+            type="checkbox"
+            id="is_active"
+            checked={formData.is_active}
+            onChange={handleChange('is_active')}
+            disabled={loading}
+            className="w-4 h-4 rounded border-[color:var(--border)] text-[color:var(--primary)] focus:ring-[color:var(--primary)]"
+          />
+          <Label htmlFor="is_active" className="cursor-pointer">
+            Active (categories can be used in projects)
+          </Label>
+        </div>
       </div>
 
-      {/* Footer with buttons */}
       <div className="border-t border-[color:var(--border)] px-6 py-4 space-y-3">
         <div className="flex gap-3">
           <Button
@@ -149,4 +151,3 @@ export function CreateClientForm({ onSuccess, onCancel }: CreateClientFormProps)
     </form>
   );
 }
-

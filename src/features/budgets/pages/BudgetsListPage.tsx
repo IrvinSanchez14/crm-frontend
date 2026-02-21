@@ -1,6 +1,6 @@
 /**
  * Budgets List Page
- * Displays all budgets with ability to generate PDF reports
+ * Shows all projects with visits so the user can create/view budgets
  */
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
@@ -11,35 +11,46 @@ import { Table, type TableColumn } from '../../../shared/components/organisms/Ta
 import { useAuth } from '../../../shared/hooks/useAuth';
 import { Heading } from '../../../shared/components/atoms/Heading';
 import { Text } from '../../../shared/components/atoms/Text';
-import { Button } from '../../../shared/components/atoms/Button';
 import { cn } from '../../../core/utils/cn';
-import { 
-  getBudgets, 
+import {
+  getVisits,
+  getProjects,
+  getBudgets,
+  type VisitDetail,
+  type ProjectDetail,
   type BudgetDetail,
-  type BudgetStatus
+  type BudgetStatus,
 } from '../../../infrastructure/api/api.client';
 import { decodeJwt } from '../../../core/utils/jwt.utils';
-import { generateBudgetPDF } from '../utils/pdfGenerator';
+
+interface VisitRow extends VisitDetail {
+  project_name: string;
+  budget_status: BudgetStatus | null;
+}
+
+const budgetStatusColors: Record<BudgetStatus, string> = {
+  draft: 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200',
+  pending_approval: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
+  accepted: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
+  rejected: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
+  revised: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
+};
 
 export function BudgetsListPage() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [budgets, setBudgets] = useState<BudgetDetail[]>([]);
-  const [selectedStatus, setSelectedStatus] = useState<BudgetStatus | ''>('');
+  const [visits, setVisits] = useState<VisitRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [generatingPDF, setGeneratingPDF] = useState<string | null>(null);
 
-  // Get company_id from JWT token
   const getCompanyId = useCallback((): string | null => {
     if (!user?.access_token) return null;
     const payload = decodeJwt(user.access_token);
     return payload?.company_id || null;
   }, [user]);
 
-  // Fetch budgets function
-  const fetchBudgets = useCallback(async () => {
+  const fetchData = useCallback(async () => {
     const companyId = getCompanyId();
     if (!companyId) {
       setError('Company ID not found. Please log in again.');
@@ -50,148 +61,97 @@ export function BudgetsListPage() {
     try {
       setLoading(true);
       setError(null);
-      const params: any = {
-        company_id: companyId,
-        skip: 0,
-        limit: 1000,
-      };
-      
-      if (selectedStatus) {
-        params.status = selectedStatus;
+
+      const [visitsData, projectsData, budgetsData] = await Promise.all([
+        getVisits({ company_id: companyId, skip: 0, limit: 1000 }),
+        getProjects({ company_id: companyId, skip: 0, limit: 1000, include_details: true }),
+        getBudgets({ company_id: companyId, skip: 0, limit: 1000 }),
+      ]);
+
+      const projectMap = new Map<string, ProjectDetail>();
+      for (const p of projectsData) {
+        projectMap.set(p.id, p);
       }
-      
-      const data = await getBudgets(params);
-      setBudgets(data);
+
+      const budgetByVisit = new Map<string, BudgetDetail>();
+      for (const b of budgetsData) {
+        budgetByVisit.set(b.visit_id, b);
+      }
+
+      const rows: VisitRow[] = visitsData.map((v) => ({
+        ...v,
+        project_name: projectMap.get(v.project_id)?.name || '—',
+        budget_status: budgetByVisit.get(v.id)?.status ?? null,
+      }));
+
+      setVisits(rows);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load budgets');
+      setError(err instanceof Error ? err.message : 'Failed to load data');
     } finally {
       setLoading(false);
     }
-  }, [getCompanyId, selectedStatus]);
+  }, [getCompanyId]);
 
-  // Fetch budgets on mount and when filters change
   useEffect(() => {
-    fetchBudgets();
-  }, [fetchBudgets]);
+    fetchData();
+  }, [fetchData]);
 
-  // Handle PDF generation
-  const handleGeneratePDF = useCallback(async (budget: BudgetDetail) => {
-    try {
-      setGeneratingPDF(budget.id);
-      await generateBudgetPDF(budget);
-    } catch (err) {
-      console.error('Failed to generate PDF:', err);
-      alert('Failed to generate PDF. Please try again.');
-    } finally {
-      setGeneratingPDF(null);
-    }
-  }, []);
-
-  // Table columns
-  const columns: TableColumn<BudgetDetail>[] = useMemo(
+  const columns: TableColumn<VisitRow>[] = useMemo(
     () => [
       {
-        key: 'title',
-        label: 'Title',
+        key: 'project_name',
+        label: 'Project',
         span: 3,
-        render: (budget) => (
+        render: (row) => (
           <Text variant="default" className="font-medium">
-            {budget.title}
+            {row.project_name}
           </Text>
         ),
       },
       {
-        key: 'visit',
+        key: 'title',
         label: 'Visit',
-        span: 2,
-        render: (budget) => {
-          // We'll need to fetch visit details or include them in the response
-          return (
-            <Text variant="muted" size="sm">
-              {budget.visit_id ? 'View Visit' : '—'}
-            </Text>
-          );
-        },
+        span: 4,
+        render: (row) => (
+          <Text variant="default" size="sm">
+            {row.title}
+          </Text>
+        ),
       },
       {
-        key: 'status',
-        label: 'Status',
-        span: 2,
-        render: (budget) => {
-          const statusColors: Record<BudgetStatus, string> = {
-            draft: 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200',
-            pending_approval: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
-            accepted: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
-            rejected: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
-            revised: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
-          };
-          return (
+        key: 'budget_status',
+        label: 'Budget',
+        span: 3,
+        render: (row) =>
+          row.budget_status ? (
             <span
               className={cn(
-                'px-2 py-1 rounded-full text-xs font-medium',
-                statusColors[budget.status]
+                'inline-block px-2 py-0.5 rounded-full text-xs font-medium',
+                budgetStatusColors[row.budget_status]
               )}
             >
-              {budget.status.replace('_', ' ').toUpperCase()}
+              {row.budget_status.replace('_', ' ').toUpperCase()}
             </span>
-          );
-        },
-      },
-      {
-        key: 'total_amount',
-        label: 'Total',
-        span: 2,
-        render: (budget) => {
-          const amount = parseFloat(budget.total_amount);
-          return (
-            <Text variant="default" className="font-semibold">
-              {new Intl.NumberFormat('en-US', {
-                style: 'currency',
-                currency: 'USD',
-                minimumFractionDigits: 2,
-              }).format(amount)}
-            </Text>
-          );
-        },
+          ) : (
+            <Text variant="muted" size="sm">No budget</Text>
+          ),
       },
       {
         key: 'created_at',
         label: 'Created',
         span: 2,
-        render: (budget) => (
+        render: (row) => (
           <Text variant="muted" size="sm">
-            {new Date(budget.created_at).toLocaleDateString()}
+            {new Date(row.created_at).toLocaleDateString()}
           </Text>
         ),
       },
-      {
-        key: 'actions',
-        label: 'Actions',
-        span: 1,
-        align: 'center',
-        render: (budget) => (
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={(e) => {
-              e.stopPropagation();
-              handleGeneratePDF(budget);
-            }}
-            disabled={generatingPDF === budget.id}
-          >
-            {generatingPDF === budget.id ? 'Generating...' : 'PDF'}
-          </Button>
-        ),
-      },
     ],
-    [handleGeneratePDF, generatingPDF]
+    []
   );
 
-  const handleRowClick = useCallback((budget: BudgetDetail) => {
-    // Navigate to the visit detail page where this budget belongs
-    if (budget.visit_id) {
-      navigate(`/visits/${budget.visit_id}`);
-    }
+  const handleRowClick = useCallback((row: VisitRow) => {
+    navigate(`/budgets/${row.id}`);
   }, [navigate]);
 
   return (
@@ -202,7 +162,7 @@ export function BudgetsListPage() {
         onLogout={logout}
       />
       <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
-      
+
       <main
         className={cn(
           'w-full pt-5',
@@ -215,27 +175,6 @@ export function BudgetsListPage() {
             <Heading variant="h1">Budgets</Heading>
           </div>
 
-          {/* Filters */}
-          <div className="mb-6 flex gap-4 items-end">
-            <div className="flex-1">
-              <label className="block text-sm font-medium mb-2 text-[color:var(--foreground)]">
-                Filter by Status
-              </label>
-              <select
-                value={selectedStatus}
-                onChange={(e) => setSelectedStatus(e.target.value as BudgetStatus | '')}
-                className="w-full px-3 py-2 border border-[color:var(--border)] rounded-lg bg-[color:var(--background)] text-[color:var(--foreground)]"
-              >
-                <option value="">All Statuses</option>
-                <option value="draft">Draft</option>
-                <option value="pending_approval">Pending Approval</option>
-                <option value="accepted">Accepted</option>
-                <option value="rejected">Rejected</option>
-                <option value="revised">Revised</option>
-              </select>
-            </div>
-          </div>
-
           {error && (
             <div className="mb-4 p-4 bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200 rounded-lg">
               {error}
@@ -244,11 +183,11 @@ export function BudgetsListPage() {
 
           <Table
             columns={columns}
-            data={budgets}
-            getRowId={(budget) => budget.id}
+            data={visits}
+            getRowId={(row) => row.id}
             loading={loading}
             error={error}
-            emptyMessage="No budgets found"
+            emptyMessage="No projects with visits found"
             onRowClick={handleRowClick}
             selectable={false}
           />

@@ -34,5 +34,9 @@ export interface SidebarItem {
    * Optional click handler
    */
   onClick?: () => void;
+  /**
+   * Optional child items for expandable sub-menus
+   */
+  children?: SidebarItem[];
 }
 

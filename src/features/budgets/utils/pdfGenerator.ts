@@ -5,23 +5,48 @@
 
 import type { BudgetDetail } from '../../../infrastructure/api/api.client';
 import type jsPDF from 'jspdf';
+import logoUrl from '../../../assets/logo.webp';
+import { registerFigtreeFont } from './pdfFonts';
+
+const FONT = 'Figtree';
 
 interface CompanyInfo {
   name: string;
-  address: string;
-  phone: string;
-  email?: string;
+  address?: string;
+  phone?: string;
   website?: string;
-  logoUrl?: string;
 }
 
 const DEFAULT_COMPANY_INFO: CompanyInfo = {
-  name: 'CANAS KITCHEN AND BATH',
-  address: '491 Nashua St, Milford NH 03055',
-  phone: '(857) 928-8407',
-  email: 'info@canaskitchenbath.com',
-  website: 'www.canaskitchenbath.com',
+  name: "CANA'S KITCHEN & BATH",
+  address: '419 Nashua Street, Milford, NH 03055',
+  phone: '603.554.8223',
+  website: 'www.canasconstruction.com',
 };
+
+/**
+ * Loads the company logo as a base64 data URL for embedding in PDF.
+ */
+async function loadLogoBase64(): Promise<string | null> {
+  try {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    await new Promise<void>((resolve, reject) => {
+      img.onload = () => resolve();
+      img.onerror = reject;
+      img.src = logoUrl;
+    });
+    const canvas = document.createElement('canvas');
+    canvas.width = img.naturalWidth;
+    canvas.height = img.naturalHeight;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return null;
+    ctx.drawImage(img, 0, 0);
+    return canvas.toDataURL('image/png');
+  } catch {
+    return null;
+  }
+}
 
 // Brand colors - Matching reference PDF design with soft blue-gray palette
 const COLORS = {
@@ -31,7 +56,9 @@ const COLORS = {
   alternateRow: [248, 250, 252] as [number, number, number], // Very light gray for alternating rows
   // Text colors
   dark: [0, 0, 0] as [number, number, number], // Black text
+  navy: [27, 40, 80] as [number, number, number], // Dark navy blue (matches logo/header lines)
   gray: [128, 128, 128] as [number, number, number], // Gray text
+  subtitle: [100, 110, 130] as [number, number, number], // Muted blue-gray for subtitles
   // Borders and lines
   border: [217, 217, 217] as [number, number, number], // Light gray borders
   white: [255, 255, 255] as [number, number, number],
@@ -89,105 +116,147 @@ function drawTableBorders(
 }
 
 /**
- * Draws a header matching reference PDF design - simple and clean
+ * Draws the branded header matching the reference rendering PDF design.
+ * Layout: Logo centered on top → two thick navy lines spanning full width →
+ * company name between lines → subtitle below second line.
  */
 function drawHeader(
   doc: jsPDF,
   companyInfo: CompanyInfo,
   budget: BudgetDetail,
   pageWidth: number,
-  margin: number
+  margin: number,
+  logoBase64: string | null,
+  isFirstPage = false,
 ): number {
-  let yPosition = margin;
+  const centerX = pageWidth / 2;
+  const lineLeft = 5;
+  const lineRight = pageWidth - 5;
+  let yPosition = 8;
 
-  // Company name - bold, left aligned
-  doc.setTextColor(...COLORS.dark);
-  doc.setFontSize(14);
-  doc.setFont('helvetica', 'bold');
-  doc.text(companyInfo.name, margin, yPosition);
+  // --- Logo centered at top, tight to page edge ---
+  const logoSize = 18;
+  if (logoBase64) {
+    doc.addImage(logoBase64, 'PNG', centerX - logoSize / 2, yPosition, logoSize, logoSize);
+    yPosition += logoSize - 2;
+  }
 
-  // "WORK DETAIL" subtitle
-  yPosition += 7;
+  // --- First thick navy horizontal line ---
+  doc.setDrawColor(...COLORS.navy);
+  doc.setLineWidth(1);
+  doc.line(lineLeft, yPosition, lineRight, yPosition);
+
+  yPosition += 4.5;
+
+  // --- Company name between the two lines ---
+  doc.setTextColor(...COLORS.navy);
   doc.setFontSize(12);
-  doc.setFont('helvetica', 'bold');
-  doc.text('WORK DETAIL', margin, yPosition);
+  doc.setFont(FONT, 'bold');
+  doc.text(companyInfo.name, centerX, yPosition, { align: 'center' });
 
-  // Company address and contact - left side
-  yPosition += 7;
-  doc.setFontSize(9);
-  doc.setFont('helvetica', 'normal');
-  doc.text(companyInfo.address, margin, yPosition);
+  yPosition += 2;
 
-  yPosition += 5;
-  doc.text(`Phone: ${companyInfo.phone}`, margin, yPosition);
+  // --- Second thick navy horizontal line ---
+  doc.setDrawColor(...COLORS.navy);
+  doc.setLineWidth(1);
+  doc.line(lineLeft, yPosition, lineRight, yPosition);
 
-  // Proposal info box - right aligned
-  const rightX = pageWidth - margin;
-  let rightY = margin;
+  yPosition += 4.5;
 
-  // Create a small table-like box for proposal info
-  const boxWidth = 65;
-  const boxX = rightX - boxWidth;
-
-  // Header row with light blue background
-  doc.setFillColor(...COLORS.headerBg);
-  doc.rect(boxX, rightY - 4, boxWidth, 7, 'F');
-
-  doc.setFontSize(8);
-  doc.setFont('helvetica', 'bold');
-  doc.text('PROPOSAL', boxX + 2, rightY);
-  doc.text('DATE', boxX + 35, rightY);
-
-  // Data row
-  rightY += 6;
-  doc.setFont('helvetica', 'normal');
-  const proposalNumber = budget.id.substring(0, 8).toUpperCase();
-  const proposalDate = new Date(budget.created_at).toLocaleDateString('en-US', {
-    month: '2-digit',
-    day: '2-digit',
-    year: '2-digit',
-  });
-
-  doc.text(proposalNumber, boxX + 2, rightY);
-  doc.text(proposalDate, boxX + 35, rightY);
+  // --- Project subtitle below second line ---
+  const subtitle = budget.project_address || budget.project_name || '';
+  if (subtitle) {
+    doc.setFontSize(9);
+    doc.setFont(FONT, 'normal');
+    doc.setTextColor(...COLORS.navy);
+    doc.text(subtitle, centerX, yPosition, { align: 'center' });
+    yPosition += 5;
+  }
 
   yPosition += 8;
 
-  // "WORK DETAIL" section header with light background
-  doc.setFillColor(...COLORS.headerBg);
-  doc.rect(margin - 5, yPosition - 3, pageWidth - (margin * 2) + 10, 8, 'F');
+  // Client info + Proposal box - only on first page, aligned on same row
+  if (isFirstPage) {
+    // --- Client info on the left (no label) ---
+    const leftX = margin;
+    let leftY = yPosition;
+    doc.setFontSize(9);
+    doc.setFont(FONT, 'normal');
+    doc.setTextColor(...COLORS.dark);
+    if (budget.client_name) {
+      doc.setFont(FONT, 'bold');
+      doc.text(budget.client_name, leftX, leftY);
+      doc.setFont(FONT, 'normal');
+      leftY += 4;
+    }
+    if (budget.project_address) {
+      doc.text(budget.project_address, leftX, leftY);
+      leftY += 4;
+    }
+    if (budget.client_phone) {
+      doc.text(budget.client_phone, leftX, leftY);
+      leftY += 4;
+    }
+    if (budget.client_email) {
+      doc.text(budget.client_email, leftX, leftY);
+    }
 
-  doc.setFontSize(10);
-  doc.setFont('helvetica', 'bold');
-  doc.text('WORK DETAIL', margin, yPosition + 2);
+    // --- Proposal + Date box on the right, aligned with client info ---
+    const rightX = pageWidth - margin;
+    const boxWidth = 65;
+    const boxX = rightX - boxWidth;
+    let rightY = yPosition - 2;
 
-  yPosition += 10;
+    doc.setFillColor(...COLORS.headerBg);
+    doc.rect(boxX, rightY - 4, boxWidth, 7, 'F');
 
-  // Budget title
-  doc.setFontSize(11);
-  doc.setFont('helvetica', 'bold');
-  doc.text(budget.title.toUpperCase(), margin, yPosition);
+    doc.setFontSize(8);
+    doc.setFont(FONT, 'bold');
+    doc.setTextColor(...COLORS.dark);
+    doc.text('PROPOSAL', boxX + 2, rightY);
+    doc.text('DATE', boxX + 35, rightY);
 
-  yPosition += 5;
+    rightY += 6;
+    doc.setFont(FONT, 'normal');
+    const proposalNumber = budget.id.substring(0, 8).toUpperCase();
+    const proposalDate = new Date(budget.created_at).toLocaleDateString('en-US', {
+      month: '2-digit',
+      day: '2-digit',
+      year: '2-digit',
+    });
+
+    doc.text(proposalNumber, boxX + 2, rightY);
+    doc.text(proposalDate, boxX + 35, rightY);
+
+    yPosition += 20;
+  }
 
   return yPosition;
 }
 
 /**
- * Generates a PDF report for a budget with professional design
+ * Builds the full PDF document (shared logic for download and preview)
  */
-export async function generateBudgetPDF(
+async function buildBudgetDoc(
   budget: BudgetDetail,
-  companyInfo: CompanyInfo = DEFAULT_COMPANY_INFO
-): Promise<void> {
-  // Dynamic import to reduce initial bundle size
+  companyInfo: CompanyInfo,
+): Promise<jsPDF> {
   const { default: jsPDF } = await import('jspdf');
   const doc = new jsPDF();
+
+  // Register custom font and load logo
+  const [logoBase64] = await Promise.all([
+    loadLogoBase64(),
+    registerFigtreeFont(doc),
+  ]);
+
+  doc.setFont(FONT, 'normal');
+
   const pageWidth = doc.internal.pageSize.getWidth();
   const margin = 20;
   const contentWidth = pageWidth - (margin * 2);
 
-  let yPosition = drawHeader(doc, companyInfo, budget, pageWidth, margin);
+  let yPosition = drawHeader(doc, companyInfo, budget, pageWidth, margin, logoBase64, true);
 
   // Main table
   const colWidths = {
@@ -197,6 +266,16 @@ export async function generateBudgetPDF(
     unitPrice: contentWidth * 0.14,
     subtotal: contentWidth * 0.14,
   };
+
+  // Project title in red before the table
+  if (budget.project_name) {
+    doc.setFontSize(12);
+    doc.setFont(FONT, 'bold');
+    doc.setTextColor(200, 30, 30);
+    doc.text(budget.project_name.toUpperCase(), margin, yPosition + 2);
+    doc.setTextColor(...COLORS.dark);
+    yPosition += 10;
+  }
 
   // Table header with light blue-gray background (matching reference)
   yPosition += 5;
@@ -208,7 +287,7 @@ export async function generateBudgetPDF(
   drawTableBorders(doc, margin, tableStartY, tableStartY + 8, colWidths, contentWidth);
 
   doc.setFontSize(9);
-  doc.setFont('helvetica', 'bold');
+  doc.setFont(FONT, 'bold');
   doc.setTextColor(...COLORS.dark); // Black text on light background
 
   let xPos = margin + 2;
@@ -247,27 +326,27 @@ export async function generateBudgetPDF(
 
     // Section row with section total on the right
     doc.setFontSize(9);
-    doc.setFont('helvetica', 'bold');
+    doc.setFont(FONT, 'bold');
 
     // Section number and name on the left
     doc.text(`${sectionNumber}`, margin + 2, yPosition);
     doc.text(category.name.toUpperCase(), margin + 8, yPosition);
 
-    // Section total on the right (in Subtotal column)
-    xPos = margin + colWidths.description + colWidths.unit + colWidths.quantity + colWidths.unitPrice + 2;
+    // Section total on the right (aligned with item subtotals)
+    xPos = margin + colWidths.description + colWidths.unit + colWidths.quantity + colWidths.unitPrice + 8;
     doc.text(formatCurrency(sectionSubtotal), xPos, yPosition);
 
     yPosition = sectionRowStartY + sectionRowHeight;
 
     // Section items
     doc.setFontSize(8);
-    doc.setFont('helvetica', 'normal');
+    doc.setFont(FONT, 'normal');
 
     for (const item of items) {
       // Check if we need a new page
       if (yPosition > doc.internal.pageSize.getHeight() - 30) {
         doc.addPage();
-        yPosition = drawHeader(doc, companyInfo, budget, pageWidth, margin);
+        yPosition = drawHeader(doc, companyInfo, budget, pageWidth, margin, logoBase64);
       }
 
       const rowStartY = yPosition;
@@ -330,26 +409,25 @@ export async function generateBudgetPDF(
 
   // Total label and amount on same row, bold
   doc.setFontSize(11);
-  doc.setFont('helvetica', 'bold');
+  doc.setFont(FONT, 'bold');
   doc.setTextColor(...COLORS.dark);
   doc.text('TOTAL', margin + 2, yPosition);
 
-  xPos = margin + colWidths.description + colWidths.unit + colWidths.quantity + colWidths.unitPrice;
+  xPos = margin + colWidths.description + colWidths.unit + colWidths.quantity + colWidths.unitPrice + 8;
   doc.setFontSize(12);
   doc.text(formatCurrency(budget.total_amount), xPos, yPosition);
 
   yPosition += 15;
 
-  // Footer section - minimal
+  // Thank you / validity note
   if (yPosition < doc.internal.pageSize.getHeight() - 40) {
     doc.setDrawColor(...COLORS.border);
     doc.setLineWidth(0.3);
     doc.line(margin, yPosition, pageWidth - margin, yPosition);
     yPosition += 6;
 
-    // Thank you message
     doc.setFontSize(9);
-    doc.setFont('helvetica', 'normal');
+    doc.setFont(FONT, 'normal');
     doc.setTextColor(...COLORS.gray);
     doc.text('Thank you for choosing us for your project!', margin, yPosition);
     yPosition += 5;
@@ -358,21 +436,62 @@ export async function generateBudgetPDF(
     doc.text('This proposal is valid for 30 days from the date above.', margin, yPosition);
   }
 
-  // Page numbers at bottom
+  // Footer on every page: company address – phone – website (matching reference PDF)
   const pageCount = doc.getNumberOfPages();
+  const pageHeight = doc.internal.pageSize.getHeight();
   for (let i = 1; i <= pageCount; i++) {
     doc.setPage(i);
     doc.setFontSize(8);
-    doc.setTextColor(...COLORS.gray);
-    doc.text(
-      `Page ${i} of ${pageCount}`,
-      pageWidth / 2,
-      doc.internal.pageSize.getHeight() - 10,
-      { align: 'center' }
-    );
+    doc.setFont(FONT, 'normal');
+    doc.setTextColor(...COLORS.subtitle);
+
+    // Company footer line (centered, en-dash separated)
+    const footerParts = [
+      companyInfo.address,
+      companyInfo.phone,
+      companyInfo.website,
+    ].filter(Boolean);
+    if (footerParts.length > 0) {
+      doc.text(
+        footerParts.join(' \u2013 '),
+        pageWidth / 2,
+        pageHeight - 12,
+        { align: 'center' }
+      );
+    }
   }
 
-  // Save PDF
-  const fileName = `Budget_${budget.title.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
-  doc.save(fileName);
+  return doc;
+}
+
+function getBudgetFileName(budget: BudgetDetail): string {
+  const client = (budget.client_name || 'Client').replace(/\s+/g, '_');
+  const project = (budget.project_name || 'Project').replace(/\s+/g, '_');
+  const date = new Date().toISOString().split('T')[0];
+  return `${client}_${project}_${date}`;
+}
+
+/**
+ * Generates a PDF report for a budget with professional design (triggers download)
+ */
+export async function generateBudgetPDF(
+  budget: BudgetDetail,
+  companyInfo: CompanyInfo = DEFAULT_COMPANY_INFO
+): Promise<void> {
+  const doc = await buildBudgetDoc(budget, companyInfo);
+  doc.save(`${getBudgetFileName(budget)}.pdf`);
+}
+
+/**
+ * Generates a PDF blob URL for preview (does not trigger download).
+ * Caller is responsible for revoking the URL via URL.revokeObjectURL().
+ */
+export async function generateBudgetPDFPreview(
+  budget: BudgetDetail,
+  companyInfo: CompanyInfo = DEFAULT_COMPANY_INFO
+): Promise<{ url: string; fileName: string }> {
+  const doc = await buildBudgetDoc(budget, companyInfo);
+  const blob = doc.output('blob');
+  const url = URL.createObjectURL(blob);
+  return { url, fileName: `${getBudgetFileName(budget)}.pdf` };
 }

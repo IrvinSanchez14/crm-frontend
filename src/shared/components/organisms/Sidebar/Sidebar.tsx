@@ -1,4 +1,4 @@
-import { memo, useEffect, useCallback } from 'react';
+import { memo, useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '../../../../core/utils/cn';
 import type { SidebarProps, SidebarItem } from './Sidebar.types';
@@ -146,11 +146,55 @@ export const Sidebar = memo<SidebarProps>(({ isOpen, onClose, className }) => {
       ),
       path: '/renderings',
     },
+    {
+      id: 'reports',
+      label: 'Reports',
+      icon: (
+        <svg
+          className="w-5 h-5"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+          />
+        </svg>
+      ),
+      children: [
+        {
+          id: 'reports-budgets',
+          label: 'Budget Report',
+          path: '/reports/budgets',
+        },
+        {
+          id: 'reports-renderings',
+          label: 'Rendering Report',
+          path: '/reports/renderings',
+        },
+      ],
+    },
   ];
+
+  // Track expanded parent menus
+  const [expandedMenus, setExpandedMenus] = useState<Record<string, boolean>>({});
+
+  const toggleMenu = useCallback((id: string) => {
+    setExpandedMenus((prev) => ({ ...prev, [id]: !prev[id] }));
+  }, []);
 
   // Handle menu item click
   const handleItemClick = useCallback(
     (item: SidebarItem) => {
+      // If item has children, toggle expand instead of navigating
+      if (item.children && item.children.length > 0) {
+        toggleMenu(item.id);
+        return;
+      }
       if (item.path) {
         navigate(item.path);
       }
@@ -162,7 +206,7 @@ export const Sidebar = memo<SidebarProps>(({ isOpen, onClose, className }) => {
         onClose();
       }
     },
-    [navigate, onClose]
+    [navigate, onClose, toggleMenu]
   );
 
   // ESC key handler
@@ -231,31 +275,81 @@ export const Sidebar = memo<SidebarProps>(({ isOpen, onClose, className }) => {
         {/* Sidebar Content */}
         <nav className="flex-1 overflow-y-auto py-4">
           <ul className="space-y-1 px-2">
-            {menuItems.map((item) => (
-              <li key={item.id}>
-                <button
-                  onClick={() => handleItemClick(item)}
-                  className={cn(
-                    'w-full flex items-center gap-3',
-                    'px-4 py-3 rounded-lg',
-                    'text-left text-sm font-medium',
-                    'text-[color:var(--foreground)]',
-                    'hover:bg-[color:var(--muted)]',
-                    'transition-colors duration-150',
-                    'focus:outline-none focus:ring-2 focus:ring-[color:var(--primary)] focus:ring-offset-2',
-                    'active:scale-[0.98]'
+            {menuItems.map((item) => {
+              const hasChildren = item.children && item.children.length > 0;
+              const isExpanded = expandedMenus[item.id];
+
+              return (
+                <li key={item.id}>
+                  <button
+                    onClick={() => handleItemClick(item)}
+                    className={cn(
+                      'w-full flex items-center gap-3',
+                      'px-4 py-3 rounded-lg',
+                      'text-left text-sm font-medium',
+                      'text-[color:var(--foreground)]',
+                      'hover:bg-[color:var(--muted)]',
+                      'transition-colors duration-150',
+                      'focus:outline-none focus:ring-2 focus:ring-[color:var(--primary)] focus:ring-offset-2',
+                      'active:scale-[0.98]'
+                    )}
+                    aria-label={item.label}
+                    aria-expanded={hasChildren ? isExpanded : undefined}
+                  >
+                    {item.icon && (
+                      <span className="flex-shrink-0 text-[color:var(--muted-foreground)]">
+                        {item.icon}
+                      </span>
+                    )}
+                    <span className="flex-1">{item.label}</span>
+                    {hasChildren && (
+                      <svg
+                        className={cn(
+                          'w-4 h-4 text-[color:var(--muted-foreground)] transition-transform duration-200',
+                          isExpanded && 'rotate-90'
+                        )}
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    )}
+                  </button>
+
+                  {/* Sub-menu */}
+                  {hasChildren && isExpanded && (
+                    <ul className="mt-1 ml-4 pl-4 border-l border-[color:var(--border)] space-y-1">
+                      {item.children!.map((child) => (
+                        <li key={child.id}>
+                          <button
+                            onClick={() => handleItemClick(child)}
+                            className={cn(
+                              'w-full flex items-center gap-3',
+                              'px-3 py-2 rounded-lg',
+                              'text-left text-sm',
+                              'text-[color:var(--muted-foreground)]',
+                              'hover:bg-[color:var(--muted)] hover:text-[color:var(--foreground)]',
+                              'transition-colors duration-150',
+                              'focus:outline-none focus:ring-2 focus:ring-[color:var(--primary)] focus:ring-offset-2',
+                              'active:scale-[0.98]'
+                            )}
+                            aria-label={child.label}
+                          >
+                            {child.icon && (
+                              <span className="flex-shrink-0">
+                                {child.icon}
+                              </span>
+                            )}
+                            <span>{child.label}</span>
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
                   )}
-                  aria-label={item.label}
-                >
-                  {item.icon && (
-                    <span className="flex-shrink-0 text-[color:var(--muted-foreground)]">
-                      {item.icon}
-                    </span>
-                  )}
-                  <span>{item.label}</span>
-                </button>
-              </li>
-            ))}
+                </li>
+              );
+            })}
           </ul>
         </nav>
       </aside>

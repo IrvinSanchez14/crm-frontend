@@ -1,6 +1,6 @@
 /**
  * Visit Detail Page
- * Full-page view for employees to view and edit visit details
+ * Full-page read-only view with tabs: Details | Notes | Attachments
  */
 
 import { useState, useEffect, useCallback } from 'react';
@@ -11,23 +11,20 @@ import { useAuth } from '../../../shared/hooks/useAuth';
 import { Heading } from '../../../shared/components/atoms/Heading';
 import { Text } from '../../../shared/components/atoms/Text';
 import { Button } from '../../../shared/components/atoms/Button';
-import { Label } from '../../../shared/components/atoms/Label/Label';
 import { cn } from '../../../core/utils/cn';
+import { RichTextEditor } from '../../../shared/components/molecules/RichTextEditor';
+import { VisitAttachmentSection } from '../components/VisitAttachmentSection';
 import {
   getVisit,
   getProjects,
   updateVisit,
-  getBudgetByVisit,
-  createBudget,
   type VisitDetail,
-  type VisitUpdate,
   type ProjectDetail,
-  type BudgetDetail,
-  type BudgetCreate,
-  type VisitStatus
+  type VisitStatus,
 } from '../../../infrastructure/api/api.client';
 import { decodeJwt } from '../../../core/utils/jwt.utils';
-import { BudgetView } from '../../budgets/components/BudgetView';
+
+type Tab = 'details' | 'notes' | 'attachments';
 
 export function VisitDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -37,13 +34,14 @@ export function VisitDetailPage() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [visit, setVisit] = useState<VisitDetail | null>(null);
   const [project, setProject] = useState<ProjectDetail | null>(null);
-  const [budget, setBudget] = useState<BudgetDetail | null>(null);
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [loadingBudget, setLoadingBudget] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [isEditing, setIsEditing] = useState(false);
-  const [formData, setFormData] = useState<VisitUpdate>({});
+  const [activeTab, setActiveTab] = useState<Tab>('details');
+
+  // Notes tab state
+  const [notesValue, setNotesValue] = useState('');
+  const [savingNotes, setSavingNotes] = useState(false);
+  const [notesSaved, setNotesSaved] = useState(false);
 
   // Get company_id from JWT token
   const getCompanyId = useCallback((): string | null => {
@@ -68,16 +66,7 @@ export function VisitDetailPage() {
       setError(null);
       const visitData = await getVisit(id, companyId);
       setVisit(visitData);
-      setFormData({
-        title: visitData.title,
-        description: visitData.description || undefined,
-        status: visitData.status,
-        visit_date: visitData.visit_date || undefined,
-        inspection_notes: visitData.inspection_notes || undefined,
-        estimated_materials_cost: visitData.estimated_materials_cost || undefined,
-        estimated_labor_cost: visitData.estimated_labor_cost || undefined,
-        estimated_total_cost: visitData.estimated_total_cost || undefined,
-      });
+      setNotesValue(visitData.inspection_notes || '');
 
       // Fetch project info
       const projects = await getProjects({
@@ -95,38 +84,11 @@ export function VisitDetailPage() {
     }
   }, [id, getCompanyId]);
 
-  // Fetch budget for this visit
-  const fetchBudget = useCallback(async () => {
-    if (!id) return;
-
-    const companyId = getCompanyId();
-    if (!companyId) return;
-
-    try {
-      setLoadingBudget(true);
-      const budgetData = await getBudgetByVisit(id, companyId);
-      setBudget(budgetData);
-    } catch (err) {
-      console.error('Failed to load budget:', err);
-      setBudget(null);
-    } finally {
-      setLoadingBudget(false);
-    }
-  }, [id, getCompanyId]);
-
   useEffect(() => {
     fetchVisit();
-    fetchBudget();
-  }, [fetchVisit, fetchBudget]);
+  }, [fetchVisit]);
 
-  const handleChange = (field: keyof VisitUpdate) => (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
-  ) => {
-    setFormData((prev) => ({ ...prev, [field]: e.target.value }));
-    if (error) setError(null);
-  };
-
-  const handleSave = async () => {
+  const handleSaveNotes = async () => {
     if (!id || !visit) return;
 
     const companyId = getCompanyId();
@@ -136,60 +98,16 @@ export function VisitDetailPage() {
     }
 
     try {
-      setSaving(true);
+      setSavingNotes(true);
       setError(null);
-      await updateVisit(id, formData, companyId);
-      await fetchVisit();
-      setIsEditing(false);
+      await updateVisit(id, { inspection_notes: notesValue }, companyId);
+      setNotesSaved(true);
+      setTimeout(() => setNotesSaved(false), 2000);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to update visit');
+      setError(err instanceof Error ? err.message : 'Failed to save notes');
     } finally {
-      setSaving(false);
+      setSavingNotes(false);
     }
-  };
-
-  const handleCreateBudget = async () => {
-    if (!id || !visit) return;
-
-    const companyId = getCompanyId();
-    if (!companyId) {
-      setError('Company ID not found. Please log in again.');
-      return;
-    }
-
-    try {
-      setSaving(true);
-      setError(null);
-      const budgetData: BudgetCreate = {
-        title: `Budget for ${visit.title}`,
-        description: `Budget created from visit: ${visit.title}`,
-        visit_id: id,
-        status: 'draft',
-        categories: [],
-      };
-      const newBudget = await createBudget(budgetData, companyId);
-      setBudget(newBudget);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create budget');
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleCancelEdit = () => {
-    if (visit) {
-      setFormData({
-        title: visit.title,
-        description: visit.description || undefined,
-        status: visit.status,
-        visit_date: visit.visit_date || undefined,
-        inspection_notes: visit.inspection_notes || undefined,
-        estimated_materials_cost: visit.estimated_materials_cost || undefined,
-        estimated_labor_cost: visit.estimated_labor_cost || undefined,
-        estimated_total_cost: visit.estimated_total_cost || undefined,
-      });
-    }
-    setIsEditing(false);
   };
 
   const statusColors: Record<VisitStatus, string> = {
@@ -199,6 +117,12 @@ export function VisitDetailPage() {
     inspection_required: 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200',
     visited: 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200',
   };
+
+  const tabs: { key: Tab; label: string }[] = [
+    { key: 'details', label: 'Details' },
+    { key: 'notes', label: 'Notes' },
+    { key: 'attachments', label: 'Attachments' },
+  ];
 
   if (loading) {
     return (
@@ -300,11 +224,6 @@ export function VisitDetailPage() {
                 </Text>
               )}
             </div>
-            {!isEditing && (
-              <Button variant="primary" onClick={() => setIsEditing(true)}>
-                Edit Visit
-              </Button>
-            )}
           </div>
 
           {error && (
@@ -313,156 +232,30 @@ export function VisitDetailPage() {
             </div>
           )}
 
-          {/* Visit Details Card */}
-          <div className="bg-[color:var(--card)] rounded-lg border border-[color:var(--border)] p-6 mb-6">
-            <Heading variant="h3" className="mb-4">Visit Information</Heading>
+          {/* Tabs */}
+          <div className="border-b border-[color:var(--border)] mb-6">
+            <nav className="flex gap-6" aria-label="Tabs">
+              {tabs.map((tab) => (
+                <button
+                  key={tab.key}
+                  onClick={() => setActiveTab(tab.key)}
+                  className={cn(
+                    'pb-3 text-sm font-medium border-b-2 transition-colors',
+                    activeTab === tab.key
+                      ? 'border-[color:var(--primary)] text-[color:var(--primary)]'
+                      : 'border-transparent text-[color:var(--muted-foreground)] hover:text-[color:var(--foreground)] hover:border-[color:var(--border)]'
+                  )}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </nav>
+          </div>
 
-            {isEditing ? (
-              <div className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="title">Title *</Label>
-                    <input
-                      id="title"
-                      type="text"
-                      value={formData.title || ''}
-                      onChange={handleChange('title')}
-                      disabled={saving}
-                      required
-                      className="w-full px-3 py-2 border border-[color:var(--border)] rounded-lg bg-[color:var(--background)] text-[color:var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[color:var(--primary)]"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="status">Status</Label>
-                    <select
-                      id="status"
-                      value={formData.status || 'planning'}
-                      onChange={handleChange('status')}
-                      disabled={saving}
-                      className="w-full px-3 py-2 border border-[color:var(--border)] rounded-lg bg-[color:var(--background)] text-[color:var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[color:var(--primary)]"
-                    >
-                      <option value="planning">Planning</option>
-                      <option value="in_review">In Review</option>
-                      <option value="approved">Approved</option>
-                      <option value="inspection_required">Inspection Required</option>
-                      <option value="visited">Visited</option>
-                    </select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="visit_date">Visit Date</Label>
-                    <input
-                      id="visit_date"
-                      type="date"
-                      value={formData.visit_date || ''}
-                      onChange={handleChange('visit_date')}
-                      disabled={saving}
-                      className="w-full px-3 py-2 border border-[color:var(--border)] rounded-lg bg-[color:var(--background)] text-[color:var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[color:var(--primary)]"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="description">Description</Label>
-                  <textarea
-                    id="description"
-                    value={formData.description || ''}
-                    onChange={handleChange('description')}
-                    disabled={saving}
-                    rows={3}
-                    placeholder="Describe the purpose of this visit..."
-                    className="w-full px-3 py-2 border border-[color:var(--border)] rounded-lg bg-[color:var(--background)] text-[color:var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[color:var(--primary)] resize-none"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="inspection_notes">Inspection Notes</Label>
-                  <textarea
-                    id="inspection_notes"
-                    value={formData.inspection_notes || ''}
-                    onChange={handleChange('inspection_notes')}
-                    disabled={saving}
-                    rows={4}
-                    placeholder="Notes from the site inspection..."
-                    className="w-full px-3 py-2 border border-[color:var(--border)] rounded-lg bg-[color:var(--background)] text-[color:var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[color:var(--primary)] resize-none"
-                  />
-                </div>
-
-                {/* Cost Estimates */}
-                <div className="border-t border-[color:var(--border)] pt-4 mt-4">
-                  <Heading variant="h4" className="mb-3">Cost Estimates</Heading>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="estimated_materials_cost">Materials Cost</Label>
-                      <div className="relative">
-                        <span className="absolute left-3 top-2.5 text-[color:var(--foreground)]">$</span>
-                        <input
-                          id="estimated_materials_cost"
-                          type="number"
-                          step="0.01"
-                          value={formData.estimated_materials_cost || ''}
-                          onChange={handleChange('estimated_materials_cost')}
-                          disabled={saving}
-                          placeholder="0.00"
-                          className="w-full pl-8 pr-3 py-2 border border-[color:var(--border)] rounded-lg bg-[color:var(--background)] text-[color:var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[color:var(--primary)]"
-                        />
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="estimated_labor_cost">Labor Cost</Label>
-                      <div className="relative">
-                        <span className="absolute left-3 top-2.5 text-[color:var(--foreground)]">$</span>
-                        <input
-                          id="estimated_labor_cost"
-                          type="number"
-                          step="0.01"
-                          value={formData.estimated_labor_cost || ''}
-                          onChange={handleChange('estimated_labor_cost')}
-                          disabled={saving}
-                          placeholder="0.00"
-                          className="w-full pl-8 pr-3 py-2 border border-[color:var(--border)] rounded-lg bg-[color:var(--background)] text-[color:var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[color:var(--primary)]"
-                        />
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="estimated_total_cost">Total Cost</Label>
-                      <div className="relative">
-                        <span className="absolute left-3 top-2.5 text-[color:var(--foreground)]">$</span>
-                        <input
-                          id="estimated_total_cost"
-                          type="number"
-                          step="0.01"
-                          value={formData.estimated_total_cost || ''}
-                          onChange={handleChange('estimated_total_cost')}
-                          disabled={saving}
-                          placeholder="0.00"
-                          className="w-full pl-8 pr-3 py-2 border border-[color:var(--border)] rounded-lg bg-[color:var(--background)] text-[color:var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[color:var(--primary)]"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Action Buttons */}
-                <div className="flex gap-3 pt-4">
-                  <Button
-                    variant="primary"
-                    onClick={handleSave}
-                    disabled={saving}
-                  >
-                    {saving ? 'Saving...' : 'Save Changes'}
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    onClick={handleCancelEdit}
-                    disabled={saving}
-                  >
-                    Cancel
-                  </Button>
-                </div>
-              </div>
-            ) : (
+          {/* Tab Content */}
+          {activeTab === 'details' && (
+            <div className="bg-[color:var(--card)] rounded-lg border border-[color:var(--border)] p-6">
+              <Heading variant="h3" className="mb-4">Visit Information</Heading>
               <div className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   <div>
@@ -481,7 +274,7 @@ export function VisitDetailPage() {
                     <Text variant="default">
                       {visit?.visit_date
                         ? new Date(visit.visit_date).toLocaleDateString()
-                        : '—'}
+                        : '\u2014'}
                     </Text>
                   </div>
                   <div>
@@ -489,7 +282,7 @@ export function VisitDetailPage() {
                     <Text variant="default">
                       {visit?.created_at
                         ? new Date(visit.created_at).toLocaleDateString()
-                        : '—'}
+                        : '\u2014'}
                     </Text>
                   </div>
                 </div>
@@ -498,15 +291,6 @@ export function VisitDetailPage() {
                   <div>
                     <Text variant="muted" className="text-xs mb-1">Description</Text>
                     <Text variant="default">{visit.description}</Text>
-                  </div>
-                )}
-
-                {visit?.inspection_notes && (
-                  <div>
-                    <Text variant="muted" className="text-xs mb-1">Inspection Notes</Text>
-                    <Text variant="default" className="whitespace-pre-wrap">
-                      {visit.inspection_notes}
-                    </Text>
                   </div>
                 )}
 
@@ -543,40 +327,43 @@ export function VisitDetailPage() {
                   </div>
                 )}
               </div>
-            )}
-          </div>
-
-          {/* Budget Section */}
-          <div className="bg-[color:var(--card)] rounded-lg border border-[color:var(--border)] p-6">
-            <div className="flex items-center justify-between mb-4">
-              <Heading variant="h3">Budget</Heading>
-              {!budget && !loadingBudget && (
-                <Button
-                  variant="primary"
-                  size="sm"
-                  onClick={handleCreateBudget}
-                  disabled={saving}
-                >
-                  Create Budget
-                </Button>
-              )}
             </div>
+          )}
 
-            {loadingBudget ? (
-              <Text variant="muted">Loading budget...</Text>
-            ) : budget ? (
-              <BudgetView
-                budget={budget}
-                onBudgetUpdated={fetchBudget}
-              />
-            ) : (
-              <div className="p-4 bg-[color:var(--muted)] rounded-lg">
-                <Text variant="muted">
-                  No budget created yet. Create a budget to add line items and generate quotes.
-                </Text>
+          {activeTab === 'notes' && (
+            <div className="bg-[color:var(--card)] rounded-lg border border-[color:var(--border)] p-6">
+              <div className="flex items-center justify-between mb-4">
+                <Heading variant="h3">Inspection Notes</Heading>
+                <div className="flex items-center gap-3">
+                  {notesSaved && (
+                    <Text size="sm" className="text-green-600 dark:text-green-400">
+                      Saved
+                    </Text>
+                  )}
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    onClick={handleSaveNotes}
+                    disabled={savingNotes}
+                  >
+                    {savingNotes ? 'Saving...' : 'Save Notes'}
+                  </Button>
+                </div>
               </div>
-            )}
-          </div>
+              <RichTextEditor
+                value={notesValue}
+                onChange={setNotesValue}
+                placeholder="Add inspection notes, observations, and findings..."
+                disabled={savingNotes}
+              />
+            </div>
+          )}
+
+          {activeTab === 'attachments' && id && (
+            <div className="bg-[color:var(--card)] rounded-lg border border-[color:var(--border)] p-6">
+              <VisitAttachmentSection visitId={id} />
+            </div>
+          )}
         </div>
       </main>
     </div>

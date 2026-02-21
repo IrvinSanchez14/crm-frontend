@@ -15,12 +15,15 @@ import {
 } from '../../../infrastructure/api/api.client';
 import { decodeJwt } from '../../../core/utils/jwt.utils';
 import { CreateProjectCategoryForm } from '../components/CreateProjectCategoryForm';
+import { EditProjectCategoryForm } from '../components/EditProjectCategoryForm';
 
 export function ProjectCategoriesPage() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isRightSidebarOpen, setIsRightSidebarOpen] = useState(false);
+  const [rightSidebarMode, setRightSidebarMode] = useState<'create' | 'edit'>('create');
+  const [selectedCategory, setSelectedCategory] = useState<ProjectCategory | null>(null);
   const [categories, setCategories] = useState<ProjectCategory[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -81,11 +84,20 @@ export function ProjectCategoriesPage() {
 
   // Right sidebar handlers
   const openRightSidebar = useCallback(() => {
+    setRightSidebarMode('create');
+    setSelectedCategory(null);
+    setIsRightSidebarOpen(true);
+  }, []);
+
+  const openEditCategory = useCallback((category: ProjectCategory) => {
+    setRightSidebarMode('edit');
+    setSelectedCategory(category);
     setIsRightSidebarOpen(true);
   }, []);
 
   const closeRightSidebar = useCallback(() => {
     setIsRightSidebarOpen(false);
+    setSelectedCategory(null);
   }, []);
 
   // Handle successful category creation
@@ -152,8 +164,7 @@ export function ProjectCategoriesPage() {
       {
         key: 'created_at',
         label: 'Created',
-        span: 3,
-        align: 'right',
+        span: 2,
         render: (category, _isSelected) => (
           <Text
             size="sm"
@@ -167,8 +178,36 @@ export function ProjectCategoriesPage() {
           </Text>
         ),
       },
+      {
+        key: 'actions',
+        label: 'Actions',
+        span: 1,
+        align: 'right',
+        render: (category, _isSelected) => (
+          <button
+            onClick={() => openEditCategory(category)}
+            className="inline-flex items-center justify-center w-8 h-8 rounded-lg hover:bg-[color:var(--muted)] transition-colors"
+            title="Edit category"
+          >
+            <svg
+              className="w-4 h-4 text-[color:var(--muted-foreground)]"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+              />
+            </svg>
+          </button>
+        ),
+      },
     ],
-    [formatDate]
+    [formatDate, openEditCategory]
   );
 
   return (
@@ -238,13 +277,17 @@ export function ProjectCategoriesPage() {
         )}
       </div>
 
-      {/* Right Sidebar for Category Creation */}
+      {/* Right Sidebar for Category Creation/Edit */}
       <RightSidebar
         isOpen={isRightSidebarOpen}
         onClose={closeRightSidebar}
-        title="Create Category"
+        title={rightSidebarMode === 'create' ? 'Create Category' : `Edit: ${selectedCategory?.name}`}
       >
-        <CreateProjectCategoryForm onSuccess={handleCategoryCreated} onCancel={closeRightSidebar} />
+        {rightSidebarMode === 'create' ? (
+          <CreateProjectCategoryForm onSuccess={handleCategoryCreated} onCancel={closeRightSidebar} />
+        ) : selectedCategory ? (
+          <EditProjectCategoryForm category={selectedCategory} onSuccess={handleCategoryCreated} onCancel={closeRightSidebar} />
+        ) : null}
       </RightSidebar>
     </div>
   );

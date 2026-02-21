@@ -416,6 +416,12 @@ export interface ProjectCategoryCreate {
   company_id: string;
 }
 
+export interface ProjectCategoryUpdate {
+  name?: string;
+  description?: string;
+  is_active?: boolean;
+}
+
 /**
  * Catalog Item interfaces
  */
@@ -577,6 +583,18 @@ export async function createProjectCategory(
   const response = await apiClient.postPublic<ProjectCategory, ProjectCategoryCreate>(
     '/project-categories/',
     categoryData
+  );
+  return response.data;
+}
+
+export async function updateProjectCategory(
+  categoryId: string,
+  categoryData: ProjectCategoryUpdate,
+  companyId: string
+): Promise<ProjectCategory> {
+  const response = await apiClient.putPublic<ProjectCategory, ProjectCategoryUpdate & { company_id: string }>(
+    `/project-categories/${categoryId}`,
+    { ...categoryData, company_id: companyId }
   );
   return response.data;
 }
@@ -761,9 +779,108 @@ export async function updateProjectAttachment(
 }
 
 /**
+ * Visit Attachment interfaces
+ */
+export interface VisitAttachment {
+  id: string;
+  filename: string;
+  file_url: string;
+  file_type: string;
+  file_size: number;
+  description: string | null;
+  visit_id: string;
+  uploaded_by_user_id: string | null;
+  uploaded_by_name: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface VisitAttachmentListResponse {
+  attachments: VisitAttachment[];
+  total: number;
+  max_allowed: number;
+}
+
+export interface VisitAttachmentUpdate {
+  description: string | null;
+}
+
+/**
+ * Visit Attachment API methods
+ */
+export async function uploadVisitAttachment(
+  visitId: string,
+  file: File,
+  companyId: string,
+  description?: string
+): Promise<VisitAttachment> {
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const queryParams = new URLSearchParams({ company_id: companyId });
+  if (description) {
+    queryParams.append('description', description);
+  }
+
+  const response = await fetch(
+    `${API_BASE_URL}/visits/${visitId}/attachments?${queryParams.toString()}`,
+    {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${TokenService.getStoredTokens()?.access_token}`,
+      },
+      body: formData,
+    }
+  );
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || 'Failed to upload attachment');
+  }
+
+  return response.json();
+}
+
+export async function getVisitAttachments(
+  visitId: string,
+  companyId: string
+): Promise<VisitAttachmentListResponse> {
+  const queryParams = new URLSearchParams({ company_id: companyId });
+  const response = await apiClient.getPublic<VisitAttachmentListResponse>(
+    `/visits/${visitId}/attachments?${queryParams.toString()}`
+  );
+  return response.data;
+}
+
+export async function deleteVisitAttachment(
+  visitId: string,
+  attachmentId: string,
+  companyId: string
+): Promise<void> {
+  const queryParams = new URLSearchParams({ company_id: companyId });
+  await apiClient.deletePublic(
+    `/visits/${visitId}/attachments/${attachmentId}?${queryParams.toString()}`
+  );
+}
+
+export async function updateVisitAttachment(
+  visitId: string,
+  attachmentId: string,
+  data: VisitAttachmentUpdate,
+  companyId: string
+): Promise<VisitAttachment> {
+  const queryParams = new URLSearchParams({ company_id: companyId });
+  const response = await apiClient.putPublic<VisitAttachment, VisitAttachmentUpdate>(
+    `/visits/${visitId}/attachments/${attachmentId}?${queryParams.toString()}`,
+    data
+  );
+  return response.data;
+}
+
+/**
  * Visit interfaces
  */
-export type VisitStatus = 
+export type VisitStatus =
   | 'planning' 
   | 'in_review' 
   | 'approved' 
@@ -887,6 +1004,12 @@ export interface Budget {
 export interface BudgetDetail extends Budget {
   budget_categories: BudgetCategoryDetail[];
   accepted_by_name: string | null;
+  visit_title: string | null;
+  project_name: string | null;
+  project_address: string | null;
+  client_name: string | null;
+  client_phone: string | null;
+  client_email: string | null;
 }
 
 export interface BudgetItemCreate {
@@ -1129,7 +1252,7 @@ export async function getBudgets(
   }
   
   const response = await apiClient.getPublic<BudgetDetail[]>(
-    `/budgets?${queryParams.toString()}`
+    `/budgets/?${queryParams.toString()}`
   );
   return response.data;
 }
@@ -1159,6 +1282,17 @@ export async function getBudget(
   const queryParams = new URLSearchParams({ company_id });
   const response = await apiClient.getPublic<BudgetDetail>(
     `/budgets/${budgetId}?${queryParams.toString()}`
+  );
+  return response.data;
+}
+
+export async function getBudgetItemSuggestions(
+  companyId: string,
+  query: string
+): Promise<string[]> {
+  const queryParams = new URLSearchParams({ company_id: companyId, q: query, limit: '50' });
+  const response = await apiClient.getPublic<string[]>(
+    `/budgets/item-suggestions?${queryParams.toString()}`
   );
   return response.data;
 }
@@ -1344,6 +1478,7 @@ export interface RenderingImage {
   description: string | null;
   display_order: number;
   is_full_page: boolean;
+  image_type: 'project' | 'material';
   created_at: string;
 }
 
@@ -1402,6 +1537,7 @@ export interface RenderingImageCreate {
   description?: string;
   display_order?: number;
   is_full_page?: boolean;
+  image_type?: 'project' | 'material';
 }
 
 export interface RenderingImageUpdate {
@@ -1410,6 +1546,7 @@ export interface RenderingImageUpdate {
   description?: string;
   display_order?: number;
   is_full_page?: boolean;
+  image_type?: 'project' | 'material';
 }
 
 export interface RenderingItemCreate {
@@ -1697,13 +1834,14 @@ export async function deleteRenderingItem(
 
 export async function importBudgetItemsToRendering(
   renderingId: string,
-  budgetItemIds: string[],
-  company_id: string
+  budgetId: string,
+  company_id: string,
+  itemIds?: string[]
 ): Promise<RenderingItem[]> {
   const queryParams = new URLSearchParams({ company_id });
-  const response = await apiClient.postPublic<RenderingItem[], { budget_item_ids: string[] }>(
-    `/renderings/${renderingId}/items/from-budget?${queryParams.toString()}`,
-    { budget_item_ids: budgetItemIds }
+  const response = await apiClient.postPublic<RenderingItem[], { budget_id: string; item_ids?: string[] }>(
+    `/renderings/${renderingId}/items/import?${queryParams.toString()}`,
+    { budget_id: budgetId, item_ids: itemIds }
   );
   return response.data;
 }
@@ -1714,7 +1852,7 @@ export async function importBudgetItemsToRendering(
 export async function generateRenderingPDF(
   renderingId: string,
   company_id: string
-): Promise<Blob> {
+): Promise<{ blob: Blob; fileName: string }> {
   const queryParams = new URLSearchParams({ company_id });
   const response = await fetch(
     `${API_BASE_URL}/renderings/${renderingId}/pdf?${queryParams.toString()}`,
@@ -1730,7 +1868,67 @@ export async function generateRenderingPDF(
     throw new ApiError(response.status, response.statusText, 'Failed to generate PDF');
   }
 
-  return response.blob();
+  // Extract filename from Content-Disposition header
+  const disposition = response.headers.get('Content-Disposition') || '';
+  const match = disposition.match(/filename=(.+?)(?:;|$)/);
+  const fileName = match ? match[1].replace(/['"]/g, '') : `rendering_${renderingId}.pdf`;
+
+  const blob = await response.blob();
+  return { blob, fileName };
+}
+
+/**
+ * Save Rendering (creates a version snapshot)
+ */
+export async function saveRendering(
+  renderingId: string,
+  company_id: string,
+  created_by_user_id?: string,
+  notes?: string
+): Promise<RenderingVersionResponse> {
+  const queryParams = new URLSearchParams({ company_id });
+  if (created_by_user_id) queryParams.set('created_by_user_id', created_by_user_id);
+  if (notes) queryParams.set('notes', notes);
+
+  const response = await apiClient.postPublic<RenderingVersionResponse, Record<string, never>>(
+    `/renderings/${renderingId}/save?${queryParams.toString()}`,
+    {}
+  );
+  return response.data;
+}
+
+/**
+ * Rendering Version interfaces
+ */
+export interface RenderingVersionResponse {
+  id: string;
+  rendering_id: string;
+  version_number: number;
+  snapshot: Record<string, unknown>;
+  notes: string | null;
+  created_by_user_id: string | null;
+  created_by_name: string | null;
+  created_at: string;
+}
+
+/**
+ * Get rendering versions
+ */
+export async function getRenderingVersions(
+  renderingId: string,
+  company_id: string,
+  skip = 0,
+  limit = 100
+): Promise<RenderingVersionResponse[]> {
+  const queryParams = new URLSearchParams({
+    company_id,
+    skip: skip.toString(),
+    limit: limit.toString(),
+  });
+  const response = await apiClient.getPublic<{ versions: RenderingVersionResponse[] }>(
+    `/renderings/${renderingId}/versions?${queryParams.toString()}`
+  );
+  return response.data.versions;
 }
 
 /**

@@ -39,6 +39,12 @@ const VisitDetailPage = lazy(() =>
 const BudgetsListPage = lazy(() =>
   import('./features/budgets').then((module) => ({ default: module.BudgetsListPage }))
 );
+const BudgetDetailPage = lazy(() =>
+  import('./features/budgets').then((module) => ({ default: module.BudgetDetailPage }))
+);
+const CreateBudgetPage = lazy(() =>
+  import('./features/budgets').then((module) => ({ default: module.CreateBudgetPage }))
+);
 const RenderingsPage = lazy(() =>
   import('./features/renderings').then((module) => ({ default: module.RenderingsPage }))
 );
@@ -47,6 +53,12 @@ const RenderingDetailPage = lazy(() =>
 );
 const CreateRenderingPage = lazy(() =>
   import('./features/renderings').then((module) => ({ default: module.CreateRenderingPage }))
+);
+const BudgetReportPage = lazy(() =>
+  import('./features/reports').then((module) => ({ default: module.BudgetReportPage }))
+);
+const RenderingReportPage = lazy(() =>
+  import('./features/reports').then((module) => ({ default: module.RenderingReportPage }))
 );
 
 // Loading fallback component
@@ -135,6 +147,22 @@ function App() {
             }
           />
           <Route
+            path="/budgets/:id/create"
+            element={
+              <ProtectedRoute>
+                <CreateBudgetPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/budgets/:id"
+            element={
+              <ProtectedRoute>
+                <BudgetDetailPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/renderings"
             element={
               <ProtectedRoute>
@@ -155,6 +183,22 @@ function App() {
             element={
               <ProtectedRoute>
                 <RenderingDetailPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/reports/budgets"
+            element={
+              <ProtectedRoute>
+                <BudgetReportPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/reports/renderings"
+            element={
+              <ProtectedRoute>
+                <RenderingReportPage />
               </ProtectedRoute>
             }
           />
