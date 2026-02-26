@@ -1,0 +1,10 @@
+{
+  "title": "Panel CRM",
+  "welcome": "Bienvenido, {{name}}",
+  "totalCustomers": "Total de Clientes",
+  "activeDeals": "Negocios Activos",
+  "revenue": "Ingresos",
+  "recentActivity": "Actividad Reciente",
+  "dashboardReady": "Tu panel CRM con soporte de modo oscuro/claro está listo!",
+  "fromLastMonth": "+{{percent}}% del mes pasado"
+}

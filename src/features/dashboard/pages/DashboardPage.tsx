@@ -2,6 +2,7 @@
 
 import { useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Header } from '../../../shared/components/organisms/Header';
 import { Sidebar } from '../../../shared/components/organisms/Sidebar';
 import { useAuth } from '../../../shared/hooks/useAuth';
@@ -14,6 +15,7 @@ export function DashboardPage() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const { t } = useTranslation('dashboard');
 
   // Memoize logout handler to prevent unnecessary re-renders
   const handleLogout = useCallback(() => {
@@ -50,10 +52,10 @@ export function DashboardPage() {
         )}
       >
         <div className="mb-8">
-          <Heading level={1}>CRM Dashboard</Heading>
+          <Heading level={1}>{t('title')}</Heading>
           {user && (
             <Text size="sm" variant="muted" className="mt-1">
-              Welcome, {user.name}
+              {t('welcome', { name: user.name })}
             </Text>
           )}
         </div>
@@ -62,47 +64,47 @@ export function DashboardPage() {
           {/* Stats Cards */}
           <Card className="p-6">
             <Text size="sm" variant="muted" className="mb-2 font-medium">
-              Total Customers
+              {t('totalCustomers')}
             </Text>
             <Heading level={1} className="text-3xl mb-2">
               1,234
             </Heading>
             <Text size="sm" variant="muted" className="mt-2">
-              +12% from last month
+              {t('fromLastMonth', { percent: '12' })}
             </Text>
           </Card>
 
           <Card className="p-6">
             <Text size="sm" variant="muted" className="mb-2 font-medium">
-              Active Deals
+              {t('activeDeals')}
             </Text>
             <Heading level={1} className="text-3xl mb-2">
               87
             </Heading>
             <Text size="sm" variant="muted" className="mt-2">
-              +5% from last month
+              {t('fromLastMonth', { percent: '5' })}
             </Text>
           </Card>
 
           <Card className="p-6">
             <Text size="sm" variant="muted" className="mb-2 font-medium">
-              Revenue
+              {t('revenue')}
             </Text>
             <Heading level={1} className="text-3xl mb-2">
               $45,678
             </Heading>
             <Text size="sm" variant="muted" className="mt-2">
-              +23% from last month
+              {t('fromLastMonth', { percent: '23' })}
             </Text>
           </Card>
         </div>
 
         <Card className="mt-8 p-6">
           <Heading level={2} className="mb-4">
-            Recent Activity
+            {t('recentActivity')}
           </Heading>
           <Text variant="muted">
-            Your CRM dashboard with dark/light mode support is ready!
+            {t('dashboardReady')}
           </Text>
         </Card>
       </div>

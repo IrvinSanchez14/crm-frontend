@@ -15,6 +15,8 @@ import {
 } from '../../../infrastructure/api/api.client';
 import { decodeJwt } from '../../../core/utils/jwt.utils';
 import { useAuth } from '../../../shared/hooks/useAuth';
+import { formatCurrencyDisplay } from '../../../core/utils/currency.utils';
+import { calcSellingPrice, calcProfit } from '../../../core/utils/pricing.utils';
 import { EditBudgetItemForm } from './EditBudgetItemForm';
 import { AddBudgetItemForm } from './AddBudgetItemForm';
 import { CategoryProfitForm } from './CategoryProfitForm';
@@ -81,15 +83,6 @@ export function BudgetItemsList({ budget, onItemUpdated }: BudgetItemsListProps)
     }
   };
 
-  const formatCurrency = (amount: string) => {
-    const num = parseFloat(amount);
-    if (isNaN(num)) return '$0.00';
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 2,
-    }).format(num);
-  };
 
   if (budget.budget_categories.length === 0) {
     return (
@@ -125,7 +118,13 @@ export function BudgetItemsList({ budget, onItemUpdated }: BudgetItemsListProps)
                     Quantity
                   </th>
                   <th className="px-4 py-2 text-right text-xs font-medium text-[color:var(--muted-foreground)]">
-                    Unit Price
+                    Real Price
+                  </th>
+                  <th className="px-4 py-2 text-right text-xs font-medium text-[color:var(--muted-foreground)]">
+                    Price + Profit
+                  </th>
+                  <th className="px-4 py-2 text-right text-xs font-medium text-[color:var(--muted-foreground)]">
+                    Profit
                   </th>
                   <th className="px-4 py-2 text-right text-xs font-medium text-[color:var(--muted-foreground)]">
                     Subtotal
@@ -175,11 +174,17 @@ export function BudgetItemsList({ budget, onItemUpdated }: BudgetItemsListProps)
                       <Text variant="default">{item.quantity}</Text>
                     </td>
                     <td className="px-4 py-3 text-right">
-                      <Text variant="default">{formatCurrency(item.unit_price)}</Text>
+                      <Text variant="default">{formatCurrencyDisplay(item.unit_price)}</Text>
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <Text variant="default">{formatCurrencyDisplay(calcSellingPrice(parseFloat(item.unit_price)))}</Text>
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <Text variant="default">{formatCurrencyDisplay(calcProfit(parseFloat(item.unit_price)))}</Text>
                     </td>
                     <td className="px-4 py-3 text-right">
                       <Text variant="default" className="font-semibold">
-                        {formatCurrency(item.subtotal)}
+                        {formatCurrencyDisplay(item.subtotal)}
                       </Text>
                     </td>
                     {budget.status === 'draft' && editingItemId !== item.id && (
@@ -207,14 +212,14 @@ export function BudgetItemsList({ budget, onItemUpdated }: BudgetItemsListProps)
                 ))}
                 {/* Category Total Row */}
                 <tr className="border-t-2 border-[color:var(--border)] bg-[color:var(--muted)]">
-                  <td colSpan={4} className="px-4 py-3">
+                  <td colSpan={6} className="px-4 py-3">
                     <Text variant="default" className="font-bold">
                       {category.name} Total
                     </Text>
                   </td>
                   <td className="px-4 py-3 text-right">
                     <Text variant="default" className="font-bold text-lg">
-                      {formatCurrency(category.subtotal)}
+                      {formatCurrencyDisplay(category.subtotal)}
                     </Text>
                   </td>
                   {budget.status === 'draft' && (
@@ -252,11 +257,11 @@ export function BudgetItemsList({ budget, onItemUpdated }: BudgetItemsListProps)
           <div className="flex gap-4 text-sm">
             <span>
               <Text variant="muted" className="text-xs">Provider:</Text>{' '}
-              <Text variant="default" className="font-medium">{formatCurrency(profit.provider_price)}</Text>
+              <Text variant="default" className="font-medium">{formatCurrencyDisplay(profit.provider_price)}</Text>
             </span>
             <span>
               <Text variant="muted" className="text-xs">Delivery:</Text>{' '}
-              <Text variant="default" className="font-medium">{formatCurrency(profit.delivery_cost)}</Text>
+              <Text variant="default" className="font-medium">{formatCurrencyDisplay(profit.delivery_cost)}</Text>
             </span>
             <span>
               <Text variant="muted" className="text-xs">Profit:</Text>{' '}
@@ -264,7 +269,7 @@ export function BudgetItemsList({ budget, onItemUpdated }: BudgetItemsListProps)
             </span>
             <span>
               <Text variant="muted" className="text-xs">Total:</Text>{' '}
-              <Text variant="default" className="font-bold">{formatCurrency(profit.total_price)}</Text>
+              <Text variant="default" className="font-bold">{formatCurrencyDisplay(profit.total_price)}</Text>
             </span>
           </div>
           {budget.status === 'draft' && (
@@ -303,7 +308,7 @@ export function BudgetItemsList({ budget, onItemUpdated }: BudgetItemsListProps)
         </div>
       )}
 
-      {budget.budget_categories.map((category) => (
+      {[...budget.budget_categories].sort((a, b) => a.order_index - b.order_index).map((category) => (
         <div key={category.id} className="space-y-3">
           <div className="flex items-center justify-between">
             <Heading variant="h5" className="text-[color:var(--muted-foreground)]">

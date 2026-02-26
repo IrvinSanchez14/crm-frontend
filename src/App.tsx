@@ -60,6 +60,12 @@ const BudgetReportPage = lazy(() =>
 const RenderingReportPage = lazy(() =>
   import('./features/reports').then((module) => ({ default: module.RenderingReportPage }))
 );
+const SetupRequestPage = lazy(() =>
+  import('./features/setup').then((module) => ({ default: module.SetupRequestPage }))
+);
+const SetupCreatePage = lazy(() =>
+  import('./features/setup').then((module) => ({ default: module.SetupCreatePage }))
+);
 
 // Loading fallback component
 function LoadingFallback() {
@@ -78,6 +84,8 @@ function App() {
       <Suspense fallback={<LoadingFallback />}>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/setup" element={<SetupRequestPage />} />
+          <Route path="/setup/create" element={<SetupCreatePage />} />
           <Route
             path="/"
             element={<Navigate to="/dashboard" replace />}

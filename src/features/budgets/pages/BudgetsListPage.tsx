@@ -22,6 +22,8 @@ import {
   type BudgetStatus,
 } from '../../../infrastructure/api/api.client';
 import { decodeJwt } from '../../../core/utils/jwt.utils';
+import { DateRangeFilter } from '../../../shared/components/molecules/DateRangeFilter/DateRangeFilter';
+import { useTranslation } from 'react-i18next';
 
 interface VisitRow extends VisitDetail {
   project_name: string;
@@ -39,8 +41,11 @@ const budgetStatusColors: Record<BudgetStatus, string> = {
 export function BudgetsListPage() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const { t } = useTranslation('budgets');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [visits, setVisits] = useState<VisitRow[]>([]);
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -53,7 +58,7 @@ export function BudgetsListPage() {
   const fetchData = useCallback(async () => {
     const companyId = getCompanyId();
     if (!companyId) {
-      setError('Company ID not found. Please log in again.');
+      setError(t('common:messages.sessionExpired'));
       setLoading(false);
       return;
     }
@@ -62,10 +67,15 @@ export function BudgetsListPage() {
       setLoading(true);
       setError(null);
 
+      const dateParams = {
+        ...(dateFrom ? { date_from: dateFrom } : {}),
+        ...(dateTo ? { date_to: dateTo } : {}),
+      };
+
       const [visitsData, projectsData, budgetsData] = await Promise.all([
-        getVisits({ company_id: companyId, skip: 0, limit: 1000 }),
+        getVisits({ company_id: companyId, skip: 0, limit: 1000, ...dateParams }),
         getProjects({ company_id: companyId, skip: 0, limit: 1000, include_details: true }),
-        getBudgets({ company_id: companyId, skip: 0, limit: 1000 }),
+        getBudgets({ company_id: companyId, skip: 0, limit: 1000, ...dateParams }),
       ]);
 
       const projectMap = new Map<string, ProjectDetail>();
@@ -86,11 +96,11 @@ export function BudgetsListPage() {
 
       setVisits(rows);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load data');
+      setError(err instanceof Error ? err.message : t('common:messages.errorLoading'));
     } finally {
       setLoading(false);
     }
-  }, [getCompanyId]);
+  }, [getCompanyId, dateFrom, dateTo]);
 
   useEffect(() => {
     fetchData();
@@ -100,7 +110,7 @@ export function BudgetsListPage() {
     () => [
       {
         key: 'project_name',
-        label: 'Project',
+        label: t('project'),
         span: 3,
         render: (row) => (
           <Text variant="default" className="font-medium">
@@ -110,7 +120,7 @@ export function BudgetsListPage() {
       },
       {
         key: 'title',
-        label: 'Visit',
+        label: t('visit'),
         span: 4,
         render: (row) => (
           <Text variant="default" size="sm">
@@ -120,7 +130,7 @@ export function BudgetsListPage() {
       },
       {
         key: 'budget_status',
-        label: 'Budget',
+        label: t('budget'),
         span: 3,
         render: (row) =>
           row.budget_status ? (
@@ -130,15 +140,15 @@ export function BudgetsListPage() {
                 budgetStatusColors[row.budget_status]
               )}
             >
-              {row.budget_status.replace('_', ' ').toUpperCase()}
+              {t(`status.${row.budget_status}`)}
             </span>
           ) : (
-            <Text variant="muted" size="sm">No budget</Text>
+            <Text variant="muted" size="sm">{t('noBudget')}</Text>
           ),
       },
       {
         key: 'created_at',
-        label: 'Created',
+        label: t('common:table.created'),
         span: 2,
         render: (row) => (
           <Text variant="muted" size="sm">
@@ -147,7 +157,7 @@ export function BudgetsListPage() {
         ),
       },
     ],
-    []
+    [t]
   );
 
   const handleRowClick = useCallback((row: VisitRow) => {
@@ -165,14 +175,24 @@ export function BudgetsListPage() {
 
       <main
         className={cn(
-          'w-full pt-5',
+          'pt-5',
           'transition-all duration-500 ease-out',
           isSidebarOpen ? 'lg:ml-64' : 'lg:ml-0'
         )}
       >
         <div className="p-6">
           <div className="flex items-center justify-between mb-6">
-            <Heading variant="h1">Budgets</Heading>
+            <Heading variant="h1">{t('title')}</Heading>
+          </div>
+
+          {/* Filters */}
+          <div className="mb-6 flex gap-4 items-end">
+            <DateRangeFilter
+              dateFrom={dateFrom}
+              dateTo={dateTo}
+              onDateFromChange={setDateFrom}
+              onDateToChange={setDateTo}
+            />
           </div>
 
           {error && (
@@ -187,7 +207,7 @@ export function BudgetsListPage() {
             getRowId={(row) => row.id}
             loading={loading}
             error={error}
-            emptyMessage="No projects with visits found"
+            emptyMessage={t('noProjectsFound')}
             onRowClick={handleRowClick}
             selectable={false}
           />

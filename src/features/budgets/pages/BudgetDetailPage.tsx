@@ -3,7 +3,7 @@
  * Receives a visit ID. Shows visit info (left) + budget or create prompt (right).
  */
 
-import { useState, useEffect, useCallback, Fragment } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Header } from '../../../shared/components/organisms/Header';
 import { Sidebar } from '../../../shared/components/organisms/Sidebar';
@@ -26,11 +26,13 @@ import {
   type VisitAttachment,
 } from '../../../infrastructure/api/api.client';
 import { decodeJwt } from '../../../core/utils/jwt.utils';
+import { useTranslation } from 'react-i18next';
 
 export function BudgetDetailPage() {
   const { id: visitId } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user, logout } = useAuth();
+  const { t } = useTranslation('budgets');
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [visit, setVisit] = useState<VisitDetail | null>(null);
@@ -52,7 +54,7 @@ export function BudgetDetailPage() {
 
     const companyId = getCompanyId();
     if (!companyId) {
-      setError('Company ID not found. Please log in again.');
+      setError(t('common:messages.sessionExpired'));
       setLoading(false);
       return;
     }
@@ -74,7 +76,7 @@ export function BudgetDetailPage() {
       setBudget(budgetData);
       setAttachments(attachmentsData.attachments);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load data');
+      setError(err instanceof Error ? err.message : t('common:messages.errorLoading'));
     } finally {
       setLoading(false);
     }
@@ -119,9 +121,9 @@ export function BudgetDetailPage() {
           onLogout={logout}
         />
         <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
-        <main className={cn('w-full pt-5', 'transition-all duration-500 ease-out', isSidebarOpen ? 'lg:ml-64' : 'lg:ml-0')}>
+        <main className={cn('pt-5', 'transition-all duration-500 ease-out', isSidebarOpen ? 'lg:ml-64' : 'lg:ml-0')}>
           <div className="p-6 flex items-center justify-center">
-            <Text variant="muted">Loading...</Text>
+            <Text variant="muted">{t('loading')}</Text>
           </div>
         </main>
       </div>
@@ -137,13 +139,13 @@ export function BudgetDetailPage() {
           onLogout={logout}
         />
         <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
-        <main className={cn('w-full pt-5', 'transition-all duration-500 ease-out', isSidebarOpen ? 'lg:ml-64' : 'lg:ml-0')}>
+        <main className={cn('pt-5', 'transition-all duration-500 ease-out', isSidebarOpen ? 'lg:ml-64' : 'lg:ml-0')}>
           <div className="p-6">
             <div className="p-4 bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200 rounded-lg mb-4">
               {error}
             </div>
             <Button variant="secondary" onClick={() => navigate('/budgets')}>
-              Back to Budgets
+              {t('backToBudgets')}
             </Button>
           </div>
         </main>
@@ -160,7 +162,7 @@ export function BudgetDetailPage() {
       />
       <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
 
-      <main className={cn('w-full pt-5', 'transition-all duration-500 ease-out', isSidebarOpen ? 'lg:ml-64' : 'lg:ml-0')}>
+      <main className={cn('pt-5', 'transition-all duration-500 ease-out', isSidebarOpen ? 'lg:ml-64' : 'lg:ml-0')}>
         <div className="p-6">
           {/* Header with back button */}
           <div className="flex items-center gap-4 mb-6">
@@ -192,7 +194,7 @@ export function BudgetDetailPage() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Left: Visit Information */}
             <div className="bg-[color:var(--card)] rounded-lg border border-[color:var(--border)] p-6">
-              <Heading variant="h3" className="mb-4">Visit Information</Heading>
+              <Heading variant="h3" className="mb-4">{t('visitInformation')}</Heading>
               {visit ? (
                 <div className="space-y-4">
                   <div>
@@ -209,7 +211,7 @@ export function BudgetDetailPage() {
                           statusColors[visit.status]
                         )}
                       >
-                        {visit.status.replace('_', ' ').toUpperCase()}
+                        {t(`visits:status.${visit.status}`)}
                       </span>
                     </div>
                     <div>
@@ -231,11 +233,11 @@ export function BudgetDetailPage() {
 
                   {(visit.estimated_materials_cost || visit.estimated_labor_cost || visit.estimated_total_cost) && (
                     <div className="border-t border-[color:var(--border)] pt-4">
-                      <Text variant="muted" className="text-xs mb-2">Cost Estimates</Text>
+                      <Text variant="muted" className="text-xs mb-2">{t('costEstimates')}</Text>
                       <div className="grid grid-cols-3 gap-4">
                         {visit.estimated_materials_cost && (
                           <div>
-                            <Text variant="muted" className="text-xs">Materials</Text>
+                            <Text variant="muted" className="text-xs">{t('materials')}</Text>
                             <Text variant="default" className="font-medium">
                               ${parseFloat(visit.estimated_materials_cost).toFixed(2)}
                             </Text>
@@ -243,7 +245,7 @@ export function BudgetDetailPage() {
                         )}
                         {visit.estimated_labor_cost && (
                           <div>
-                            <Text variant="muted" className="text-xs">Labor</Text>
+                            <Text variant="muted" className="text-xs">{t('labor')}</Text>
                             <Text variant="default" className="font-medium">
                               ${parseFloat(visit.estimated_labor_cost).toFixed(2)}
                             </Text>
@@ -251,7 +253,7 @@ export function BudgetDetailPage() {
                         )}
                         {visit.estimated_total_cost && (
                           <div>
-                            <Text variant="muted" className="text-xs">Total</Text>
+                            <Text variant="muted" className="text-xs">{t('total')}</Text>
                             <Text variant="default" className="font-medium">
                               ${parseFloat(visit.estimated_total_cost).toFixed(2)}
                             </Text>
@@ -263,11 +265,11 @@ export function BudgetDetailPage() {
 
                   <div className="grid grid-cols-2 gap-4 border-t border-[color:var(--border)] pt-4">
                     <div>
-                      <Text variant="muted" className="text-xs mb-1">Created By</Text>
+                      <Text variant="muted" className="text-xs mb-1">{t('createdBy')}</Text>
                       <Text variant="default">{visit.created_by_name || '\u2014'}</Text>
                     </div>
                     <div>
-                      <Text variant="muted" className="text-xs mb-1">Created</Text>
+                      <Text variant="muted" className="text-xs mb-1">{t('common:table.created')}</Text>
                       <Text variant="default">
                         {new Date(visit.created_at).toLocaleDateString()}
                       </Text>
@@ -277,7 +279,7 @@ export function BudgetDetailPage() {
                   {/* Notes */}
                   {visit.inspection_notes && (
                     <div className="border-t border-[color:var(--border)] pt-4">
-                      <Text variant="muted" className="text-xs mb-2">Notes</Text>
+                      <Text variant="muted" className="text-xs mb-2">{t('notes')}</Text>
                       <div
                         className="prose prose-sm dark:prose-invert max-w-none text-sm text-[color:var(--foreground)]"
                         dangerouslySetInnerHTML={{ __html: visit.inspection_notes }}
@@ -289,7 +291,7 @@ export function BudgetDetailPage() {
                   {attachments.length > 0 && (
                     <div className="border-t border-[color:var(--border)] pt-4">
                       <Text variant="muted" className="text-xs mb-2">
-                        Attachments ({attachments.length})
+                        {t('attachments')} ({attachments.length})
                       </Text>
                       <div className="flex flex-wrap gap-2">
                         {attachments.map((att) => {
@@ -324,7 +326,7 @@ export function BudgetDetailPage() {
                   )}
                 </div>
               ) : (
-                <Text variant="muted">No visit information available.</Text>
+                <Text variant="muted">{t('noVisitInfo')}</Text>
               )}
             </div>
 
@@ -332,7 +334,7 @@ export function BudgetDetailPage() {
             {budget ? (
               <div className="bg-[color:var(--card)] rounded-lg border border-[color:var(--border)] p-6">
                 <div className="flex items-center justify-between mb-4">
-                  <Heading variant="h3">Budget</Heading>
+                  <Heading variant="h3">{t('budget')}</Heading>
                   <div className="flex items-center gap-2">
                     {budget.budget_categories.length > 0 && (
                       <Button
@@ -345,7 +347,7 @@ export function BudgetDetailPage() {
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                           </svg>
-                          Preview
+                          {t('preview')}
                         </span>
                       </Button>
                     )}
@@ -355,7 +357,7 @@ export function BudgetDetailPage() {
                         size="sm"
                         onClick={() => navigate(`/budgets/${visitId}/create`)}
                       >
-                        Edit Budget
+                        {t('editBudget')}
                       </Button>
                     )}
                   </div>
@@ -366,7 +368,7 @@ export function BudgetDetailPage() {
                     <Text variant="default" className="font-medium">{budget.title}</Text>
                   </div>
                   <div>
-                    <Text variant="muted" className="text-xs mb-1">Total</Text>
+                    <Text variant="muted" className="text-xs mb-1">{t('total')}</Text>
                     <Text variant="default" className="font-semibold text-lg">
                       {formatCurrency(budget.total_amount)}
                     </Text>
@@ -379,7 +381,7 @@ export function BudgetDetailPage() {
                         budgetStatusColors[budget.status]
                       )}
                     >
-                      {budget.status.replace('_', ' ').toUpperCase()}
+                      {t(`status.${budget.status}`)}
                     </span>
                   </div>
                   <div>
@@ -393,12 +395,12 @@ export function BudgetDetailPage() {
                 <svg className="w-16 h-16 mb-4 text-[color:var(--muted-foreground)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
-                <Heading variant="h3" className="mb-2">No budget yet</Heading>
+                <Heading variant="h3" className="mb-2">{t('noBudgetYet')}</Heading>
                 <Text variant="muted" className="mb-6">
-                  This visit doesn't have a budget. Create one to start adding categories and items.
+                  {t('noBudgetDescription')}
                 </Text>
                 <Button variant="primary" onClick={() => navigate(`/budgets/${visitId}/create`)}>
-                  Create Budget
+                  {t('createBudget')}
                 </Button>
               </div>
             )}
@@ -424,7 +426,7 @@ export function BudgetDetailPage() {
               </div>
               <div className="flex items-center gap-4">
                 <div className="text-right">
-                  <Text variant="muted" className="text-xs">Grand Total</Text>
+                  <Text variant="muted" className="text-xs">{t('grandTotal')}</Text>
                   <Text className="font-bold text-xl">{formatCurrency(budget.total_amount)}</Text>
                 </div>
                 <button
@@ -443,7 +445,7 @@ export function BudgetDetailPage() {
             {/* Modal body — categories */}
             <div className="p-6 space-y-6">
               {budget.budget_categories.length === 0 ? (
-                <Text variant="muted" className="text-center py-8">No categories in this budget.</Text>
+                <Text variant="muted" className="text-center py-8">{t('noCategories')}</Text>
               ) : (
                 budget.budget_categories.map((category: BudgetCategoryDetail) => {
                   const catTotal = category.budget_items.reduce(
@@ -488,11 +490,11 @@ export function BudgetDetailPage() {
                           <table className="w-full text-sm">
                             <thead>
                               <tr className="bg-[color:var(--muted)]/20 border-b border-[color:var(--border)]">
-                                <th className="text-left px-4 py-2 font-medium text-[color:var(--muted-foreground)]">Item</th>
-                                <th className="text-left px-4 py-2 font-medium text-[color:var(--muted-foreground)] w-24">Unit</th>
-                                <th className="text-right px-4 py-2 font-medium text-[color:var(--muted-foreground)] w-20">Qty</th>
-                                <th className="text-right px-4 py-2 font-medium text-[color:var(--muted-foreground)] w-28">Unit Price</th>
-                                <th className="text-right px-4 py-2 font-medium text-[color:var(--muted-foreground)] w-28">Subtotal</th>
+                                <th className="text-left px-4 py-2 font-medium text-[color:var(--muted-foreground)]">{t('item')}</th>
+                                <th className="text-left px-4 py-2 font-medium text-[color:var(--muted-foreground)] w-24">{t('unit')}</th>
+                                <th className="text-right px-4 py-2 font-medium text-[color:var(--muted-foreground)] w-20">{t('quantity')}</th>
+                                <th className="text-right px-4 py-2 font-medium text-[color:var(--muted-foreground)] w-28">{t('unitPrice')}</th>
+                                <th className="text-right px-4 py-2 font-medium text-[color:var(--muted-foreground)] w-28">{t('subtotal')}</th>
                               </tr>
                             </thead>
                             <tbody>
@@ -515,7 +517,7 @@ export function BudgetDetailPage() {
                             </tbody>
                             <tfoot>
                               <tr className="bg-[color:var(--muted)]/10">
-                                <td colSpan={4} className="text-right px-4 py-2 font-medium text-[color:var(--muted-foreground)]">Category Total</td>
+                                <td colSpan={4} className="text-right px-4 py-2 font-medium text-[color:var(--muted-foreground)]">{t('categoryTotal')}</td>
                                 <td className="text-right px-4 py-2 font-semibold">{formatCurrency(catTotal)}</td>
                               </tr>
                             </tfoot>
@@ -523,7 +525,7 @@ export function BudgetDetailPage() {
                         </div>
                       ) : (
                         <div className="px-6 py-4">
-                          <Text variant="muted" size="sm">No items in this category.</Text>
+                          <Text variant="muted" size="sm">{t('noItems')}</Text>
                         </div>
                       )}
                     </div>
@@ -534,7 +536,7 @@ export function BudgetDetailPage() {
               {/* Grand total footer */}
               {budget.budget_categories.length > 0 && (
                 <div className="flex items-center justify-between px-6 py-4 bg-[color:var(--muted)]/20 rounded-lg border border-[color:var(--border)]">
-                  <Heading variant="h3">Grand Total</Heading>
+                  <Heading variant="h3">{t('grandTotal')}</Heading>
                   <Heading variant="h2">{formatCurrency(budget.total_amount)}</Heading>
                 </div>
               )}
@@ -542,7 +544,7 @@ export function BudgetDetailPage() {
 
             {/* Modal footer */}
             <div className="sticky bottom-0 bg-[color:var(--card)] border-t border-[color:var(--border)] px-6 py-4 flex justify-end">
-              <Button variant="secondary" onClick={() => setShowPreview(false)}>Close</Button>
+              <Button variant="secondary" onClick={() => setShowPreview(false)}>{t('common:actions.close')}</Button>
             </div>
           </div>
         </div>

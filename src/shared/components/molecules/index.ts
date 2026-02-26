@@ -1,4 +1,5 @@
 export * from './Combobox';
+export * from './DateRangeFilter/DateRangeFilter';
 export * from './FormField';
 export * from './Notification';
 export * from './RichTextEditor';

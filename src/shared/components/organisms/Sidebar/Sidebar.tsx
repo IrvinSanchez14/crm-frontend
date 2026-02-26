@@ -1,5 +1,6 @@
 import { memo, useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { cn } from '../../../../core/utils/cn';
 import type { SidebarProps, SidebarItem } from './Sidebar.types';
 
@@ -11,12 +12,13 @@ import type { SidebarProps, SidebarItem } from './Sidebar.types';
  */
 export const Sidebar = memo<SidebarProps>(({ isOpen, onClose, className }) => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   // Menu items configuration
   const menuItems: SidebarItem[] = [
     {
       id: 'clients',
-      label: 'Clients',
+      label: t('navigation.clients'),
       icon: (
         <svg
           className="w-5 h-5"
@@ -37,7 +39,7 @@ export const Sidebar = memo<SidebarProps>(({ isOpen, onClose, className }) => {
     },
     {
       id: 'projects',
-      label: 'Projects',
+      label: t('navigation.projects'),
       icon: (
         <svg
           className="w-5 h-5"
@@ -58,7 +60,7 @@ export const Sidebar = memo<SidebarProps>(({ isOpen, onClose, className }) => {
     },
     {
       id: 'project-categories',
-      label: 'Categories',
+      label: t('navigation.projectCategories'),
       icon: (
         <svg
           className="w-5 h-5"
@@ -79,7 +81,7 @@ export const Sidebar = memo<SidebarProps>(({ isOpen, onClose, className }) => {
     },
     {
       id: 'visits',
-      label: 'Visits',
+      label: t('navigation.visits'),
       icon: (
         <svg
           className="w-5 h-5"
@@ -106,7 +108,7 @@ export const Sidebar = memo<SidebarProps>(({ isOpen, onClose, className }) => {
     },
     {
       id: 'budgets',
-      label: 'Budgets',
+      label: t('navigation.budgets'),
       icon: (
         <svg
           className="w-5 h-5"
@@ -127,7 +129,7 @@ export const Sidebar = memo<SidebarProps>(({ isOpen, onClose, className }) => {
     },
     {
       id: 'renderings',
-      label: 'Renderings',
+      label: t('navigation.renderings'),
       icon: (
         <svg
           className="w-5 h-5"
@@ -148,7 +150,7 @@ export const Sidebar = memo<SidebarProps>(({ isOpen, onClose, className }) => {
     },
     {
       id: 'reports',
-      label: 'Reports',
+      label: t('navigation.reports'),
       icon: (
         <svg
           className="w-5 h-5"
@@ -168,12 +170,12 @@ export const Sidebar = memo<SidebarProps>(({ isOpen, onClose, className }) => {
       children: [
         {
           id: 'reports-budgets',
-          label: 'Budget Report',
+          label: t('navigation.budgetReport'),
           path: '/reports/budgets',
         },
         {
           id: 'reports-renderings',
-          label: 'Rendering Report',
+          label: t('reports:renderingReport'),
           path: '/reports/renderings',
         },
       ],

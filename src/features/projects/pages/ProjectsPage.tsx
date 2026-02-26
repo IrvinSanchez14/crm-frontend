@@ -13,6 +13,7 @@ import { getProjects, getClients, type ProjectDetail, type Client } from '../../
 import { decodeJwt } from '../../../core/utils/jwt.utils';
 import { CreateProjectForm } from '../components/CreateProjectForm';
 import { ProjectDetailForm } from '../components/ProjectDetailForm';
+import { DateRangeFilter } from '../../../shared/components/molecules/DateRangeFilter/DateRangeFilter';
 import { useTranslation } from '../../../i18n';
 
 export function ProjectsPage() {
@@ -26,6 +27,8 @@ export function ProjectsPage() {
   const [projects, setProjects] = useState<ProjectDetail[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
   const [selectedClientId, setSelectedClientId] = useState<string>('');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedProjects, setSelectedProjects] = useState<Set<string>>(new Set());
@@ -81,7 +84,13 @@ export function ProjectsPage() {
       if (selectedClientId) {
         params.client_id = selectedClientId;
       }
-      
+      if (dateFrom) {
+        params.date_from = dateFrom;
+      }
+      if (dateTo) {
+        params.date_to = dateTo;
+      }
+
       const data = await getProjects(params);
       setProjects(data);
     } catch (err) {
@@ -89,7 +98,7 @@ export function ProjectsPage() {
     } finally {
       setLoading(false);
     }
-  }, [getCompanyId, selectedClientId]);
+  }, [getCompanyId, selectedClientId, dateFrom, dateTo]);
 
   // Fetch clients and projects in parallel on mount
   useEffect(() => {
@@ -321,6 +330,12 @@ export function ProjectsPage() {
                 </option>
               ))}
             </select>
+            <DateRangeFilter
+              dateFrom={dateFrom}
+              dateTo={dateTo}
+              onDateFromChange={setDateFrom}
+              onDateToChange={setDateTo}
+            />
             <Button
               onClick={openRightSidebar}
               variant="ghost"

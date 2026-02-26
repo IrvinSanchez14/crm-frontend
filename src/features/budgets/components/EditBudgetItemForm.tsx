@@ -6,13 +6,15 @@
 import { useState, type FormEvent } from 'react';
 import { Button } from '../../../shared/components/atoms/Button';
 import { Label } from '../../../shared/components/atoms/Label/Label';
-import { 
+import {
   updateBudgetItem,
   type BudgetItemDetail,
   type BudgetItemUpdate
 } from '../../../infrastructure/api/api.client';
 import { decodeJwt } from '../../../core/utils/jwt.utils';
 import { useAuth } from '../../../shared/hooks/useAuth';
+import { formatCurrencyDisplay } from '../../../core/utils/currency.utils';
+import { calcSellingPrice, calcProfit, calcLineSubtotal } from '../../../core/utils/pricing.utils';
 
 export interface EditBudgetItemFormProps {
   budgetId: string;
@@ -20,6 +22,37 @@ export interface EditBudgetItemFormProps {
   item: BudgetItemDetail;
   onSuccess?: () => void;
   onCancel: () => void;
+}
+
+function PricingSummary({ quantity, unitPrice }: { quantity?: string; unitPrice?: string }) {
+  const price = parseFloat(unitPrice || '0');
+  const qty = parseFloat(quantity || '0');
+  const selling = calcSellingPrice(price);
+  const profit = calcProfit(price);
+  const subtotal = calcLineSubtotal(qty, price);
+
+  return (
+    <div className="grid grid-cols-3 gap-2">
+      <div className="space-y-1">
+        <Label className="text-xs">Price + Profit</Label>
+        <div className="px-2 py-1 text-sm border border-[color:var(--border)] rounded bg-[color:var(--muted)] text-[color:var(--foreground)] font-medium">
+          {formatCurrencyDisplay(selling)}
+        </div>
+      </div>
+      <div className="space-y-1">
+        <Label className="text-xs">Profit</Label>
+        <div className="px-2 py-1 text-sm border border-[color:var(--border)] rounded bg-[color:var(--muted)] text-[color:var(--foreground)] font-medium">
+          {formatCurrencyDisplay(profit)}
+        </div>
+      </div>
+      <div className="space-y-1">
+        <Label className="text-xs">Subtotal</Label>
+        <div className="px-2 py-1 text-sm border border-[color:var(--border)] rounded bg-[color:var(--muted)] text-[color:var(--foreground)] font-semibold">
+          {formatCurrencyDisplay(subtotal)}
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export function EditBudgetItemForm({ budgetId, categoryId, item, onSuccess, onCancel }: EditBudgetItemFormProps) {
@@ -76,10 +109,9 @@ export function EditBudgetItemForm({ budgetId, categoryId, item, onSuccess, onCa
     try {
       setLoading(true);
       
-      // Calculate subtotal
       const quantity = parseFloat(formData.quantity);
       const unitPrice = parseFloat(formData.unit_price);
-      const subtotal = quantity * unitPrice;
+      const subtotal = calcLineSubtotal(quantity, unitPrice);
 
       const itemData: BudgetItemUpdate = {
         ...formData,
@@ -146,7 +178,7 @@ export function EditBudgetItemForm({ budgetId, categoryId, item, onSuccess, onCa
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="edit_unit_price" className="text-xs">Price *</Label>
+          <Label htmlFor="edit_unit_price" className="text-xs">Real Price *</Label>
           <input
             id="edit_unit_price"
             type="number"
@@ -160,6 +192,8 @@ export function EditBudgetItemForm({ budgetId, categoryId, item, onSuccess, onCa
           />
         </div>
       </div>
+
+      <PricingSummary quantity={formData.quantity} unitPrice={formData.unit_price} />
 
       <div className="flex gap-2">
         <Button

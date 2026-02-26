@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Heading } from '../../../shared/components/atoms/Heading';
 import { Text } from '../../../shared/components/atoms/Text';
 import { Button } from '../../../shared/components/atoms/Button';
@@ -37,6 +37,9 @@ export function TabItemDetails({ renderingId, companyId, budgetId, items, onRefr
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>('');
   const [editingBudgetItemId, setEditingBudgetItemId] = useState<string | null>(null);
 
+  const selectedCategoryRef = useRef(selectedCategoryId);
+  selectedCategoryRef.current = selectedCategoryId;
+
   const fetchBudget = useCallback(async () => {
     if (!budgetId) return;
     try {
@@ -44,7 +47,7 @@ export function TabItemDetails({ renderingId, companyId, budgetId, items, onRefr
       setError(null);
       const data = await getBudget(budgetId, companyId);
       setBudget(data);
-      if (data.budget_categories.length > 0 && !selectedCategoryId) {
+      if (data.budget_categories.length > 0 && !selectedCategoryRef.current) {
         setSelectedCategoryId(data.budget_categories[0].id);
       }
     } catch (err) {
@@ -52,7 +55,7 @@ export function TabItemDetails({ renderingId, companyId, budgetId, items, onRefr
     } finally {
       setLoadingBudget(false);
     }
-  }, [budgetId, companyId, selectedCategoryId]);
+  }, [budgetId, companyId]);
 
   useEffect(() => {
     fetchBudget();

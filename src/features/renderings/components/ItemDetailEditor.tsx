@@ -43,10 +43,14 @@ export function ItemDetailEditor({
 
   const [productImageUrl, setProductImageUrl] = useState(existingRenderingItem?.product_image_url || '');
   const [productImagePreview, setProductImagePreview] = useState(existingRenderingItem?.product_image_url || '');
-  const [subtotal, setSubtotal] = useState(existingRenderingItem?.subtotal || budgetItem.subtotal || '0');
+  const subtotal = (() => {
+    const existing = existingRenderingItem?.subtotal;
+    if (existing && parseFloat(String(existing)) !== 0) return String(existing);
+    return budgetItem.subtotal || '0';
+  })();
   const [tax, setTax] = useState(existingRenderingItem?.tax || '');
-  const [notes, setNotes] = useState(existingRenderingItem?.notes || '');
-  const [disclaimer, setDisclaimer] = useState(existingRenderingItem?.disclaimer || '');
+  const [notes, setNotes] = useState(existingRenderingItem?.notes || 'Labor not included');
+  const [disclaimer, setDisclaimer] = useState(existingRenderingItem?.disclaimer || 'Pricing is strictly an estimate - the final pricing will be determined once the on-site measurement, final layout, and product selection are signed off on.');
 
   const calculatedTotal = (() => {
     const sub = parseFloat(subtotal) || 0;
@@ -169,19 +173,19 @@ export function ItemDetailEditor({
         <div className="space-y-2">
           {specs.map((spec, index) => (
             <div key={index} className="flex gap-2">
-              <input
-                type="text"
+              <textarea
                 value={spec.key}
                 onChange={(e) => updateSpec(index, 'key', e.target.value)}
                 placeholder="Key (e.g., Door Style)"
-                className="flex-1 px-3 py-2 border border-[color:var(--border)] rounded-lg bg-[color:var(--background)] text-[color:var(--foreground)] text-sm"
+                rows={2}
+                className="flex-1 px-3 py-2 border border-[color:var(--border)] rounded-lg bg-[color:var(--background)] text-[color:var(--foreground)] text-sm resize-y"
               />
-              <input
-                type="text"
+              <textarea
                 value={spec.value}
                 onChange={(e) => updateSpec(index, 'value', e.target.value)}
                 placeholder="Value"
-                className="flex-1 px-3 py-2 border border-[color:var(--border)] rounded-lg bg-[color:var(--background)] text-[color:var(--foreground)] text-sm"
+                rows={2}
+                className="flex-1 px-3 py-2 border border-[color:var(--border)] rounded-lg bg-[color:var(--background)] text-[color:var(--foreground)] text-sm resize-y"
               />
               {specs.length > 1 && (
                 <Button variant="secondary" size="sm" onClick={() => removeSpec(index)}>
@@ -221,14 +225,9 @@ export function ItemDetailEditor({
       <div className="grid grid-cols-3 gap-4 mb-4">
         <div className="space-y-1">
           <Label htmlFor="subtotal">Subtotal</Label>
-          <input
-            id="subtotal"
-            type="number"
-            step="0.01"
-            value={subtotal}
-            onChange={(e) => setSubtotal(e.target.value)}
-            className="w-full px-3 py-2 border border-[color:var(--border)] rounded-lg bg-[color:var(--background)] text-[color:var(--foreground)] text-sm"
-          />
+          <div className="px-3 py-2 border border-[color:var(--border)] rounded-lg bg-[color:var(--muted)] text-[color:var(--foreground)] text-sm font-medium">
+            ${subtotal}
+          </div>
         </div>
         <div className="space-y-1">
           <Label htmlFor="tax">Tax</Label>
@@ -254,24 +253,24 @@ export function ItemDetailEditor({
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
         <div className="space-y-1">
           <Label htmlFor="notes">Notes</Label>
-          <input
+          <textarea
             id="notes"
-            type="text"
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             placeholder="e.g., Labor not included"
-            className="w-full px-3 py-2 border border-[color:var(--border)] rounded-lg bg-[color:var(--background)] text-[color:var(--foreground)] text-sm"
+            rows={3}
+            className="w-full px-3 py-2 border border-[color:var(--border)] rounded-lg bg-[color:var(--background)] text-[color:var(--foreground)] text-sm resize-y"
           />
         </div>
         <div className="space-y-1">
           <Label htmlFor="disclaimer">Disclaimer</Label>
-          <input
+          <textarea
             id="disclaimer"
-            type="text"
             value={disclaimer}
             onChange={(e) => setDisclaimer(e.target.value)}
             placeholder="e.g., Prices subject to change"
-            className="w-full px-3 py-2 border border-[color:var(--border)] rounded-lg bg-[color:var(--background)] text-[color:var(--foreground)] text-sm"
+            rows={3}
+            className="w-full px-3 py-2 border border-[color:var(--border)] rounded-lg bg-[color:var(--background)] text-[color:var(--foreground)] text-sm resize-y"
           />
         </div>
       </div>

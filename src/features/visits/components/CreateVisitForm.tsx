@@ -72,6 +72,7 @@ export function CreateVisitForm({
     title: '',
     status: 'planning' as const,
     visit_date: '',
+    visit_time: '',
     project_id: '',
   });
 
@@ -135,6 +136,7 @@ export function CreateVisitForm({
         project_id: formData.project_id,
         status: formData.status,
         visit_date: formData.visit_date || undefined,
+        visit_time: formData.visit_time || undefined,
       };
 
       await createVisit(visitData, companyId);
@@ -207,6 +209,18 @@ export function CreateVisitForm({
           type="date"
           value={formData.visit_date}
           onChange={handleChange('visit_date')}
+          disabled={loading}
+          className="w-full px-3 py-2 border border-[color:var(--border)] rounded-lg bg-[color:var(--background)] text-[color:var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[color:var(--primary)]"
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="visit_time">Visit Time</Label>
+        <input
+          id="visit_time"
+          type="time"
+          value={formData.visit_time}
+          onChange={handleChange('visit_time')}
           disabled={loading}
           className="w-full px-3 py-2 border border-[color:var(--border)] rounded-lg bg-[color:var(--background)] text-[color:var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[color:var(--primary)]"
         />

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Header } from '../../../shared/components/organisms/Header';
 import { Sidebar } from '../../../shared/components/organisms/Sidebar';
 import { RightSidebar } from '../../../shared/components/organisms/RightSidebar';
@@ -20,6 +21,7 @@ import { EditProjectCategoryForm } from '../components/EditProjectCategoryForm';
 export function ProjectCategoriesPage() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const { t } = useTranslation('categories');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isRightSidebarOpen, setIsRightSidebarOpen] = useState(false);
   const [rightSidebarMode, setRightSidebarMode] = useState<'create' | 'edit'>('create');
@@ -122,7 +124,7 @@ export function ProjectCategoriesPage() {
     () => [
       {
         key: 'name',
-        label: 'Name',
+        label: t('name'),
         span: 4,
         render: (category, isSelected) => (
           <div className="flex items-center gap-2">
@@ -138,7 +140,7 @@ export function ProjectCategoriesPage() {
             </Text>
             {!category.is_active && (
               <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400">
-                Inactive
+                {t('inactive')}
               </span>
             )}
           </div>
@@ -146,7 +148,7 @@ export function ProjectCategoriesPage() {
       },
       {
         key: 'description',
-        label: 'Description',
+        label: t('description'),
         span: 5,
         render: (category, _isSelected) => (
           <Text
@@ -163,7 +165,7 @@ export function ProjectCategoriesPage() {
       },
       {
         key: 'created_at',
-        label: 'Created',
+        label: t('common:table.created'),
         span: 2,
         render: (category, _isSelected) => (
           <Text
@@ -180,7 +182,7 @@ export function ProjectCategoriesPage() {
       },
       {
         key: 'actions',
-        label: 'Actions',
+        label: t('common:table.actions'),
         span: 1,
         align: 'right',
         render: (category, _isSelected) => (
@@ -221,13 +223,13 @@ export function ProjectCategoriesPage() {
 
       <div
         className={cn(
-          'w-full pt-2',
+          'pt-2',
           'transition-all duration-500 ease-out',
           isSidebarOpen ? 'lg:ml-64' : 'lg:ml-0'
         )}
       >
         <div className="mb-4 flex items-center justify-between px-4">
-          <Heading level={1}>Project Categories</Heading>
+          <Heading level={1}>{t('title')}</Heading>
           <Button
             onClick={openRightSidebar}
             variant="ghost"
@@ -248,7 +250,7 @@ export function ProjectCategoriesPage() {
                 d="M12 4v16m8-8H4"
               />
             </svg>
-            Add
+            {t('common:actions.add')}
           </Button>
         </div>
 
@@ -259,7 +261,7 @@ export function ProjectCategoriesPage() {
           getRowId={(category) => category.id}
           loading={loading}
           error={error}
-          emptyMessage="No categories found"
+          emptyMessage={t('noCategoriesFound')}
           selectedRows={selectedCategories}
           onSelectionChange={setSelectedCategories}
           selectable={true}
@@ -281,7 +283,7 @@ export function ProjectCategoriesPage() {
       <RightSidebar
         isOpen={isRightSidebarOpen}
         onClose={closeRightSidebar}
-        title={rightSidebarMode === 'create' ? 'Create Category' : `Edit: ${selectedCategory?.name}`}
+        title={rightSidebarMode === 'create' ? t('createCategory') : `Edit: ${selectedCategory?.name}`}
       >
         {rightSidebarMode === 'create' ? (
           <CreateProjectCategoryForm onSuccess={handleCategoryCreated} onCancel={closeRightSidebar} />

@@ -1,0 +1,10 @@
+{
+  "title": "CRM Dashboard",
+  "welcome": "Welcome, {{name}}",
+  "totalCustomers": "Total Customers",
+  "activeDeals": "Active Deals",
+  "revenue": "Revenue",
+  "recentActivity": "Recent Activity",
+  "dashboardReady": "Your CRM dashboard with dark/light mode support is ready!",
+  "fromLastMonth": "+{{percent}}% from last month"
+}

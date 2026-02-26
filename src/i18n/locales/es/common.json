@@ -74,6 +74,8 @@
     "timePlaceholder": "Seleccionar hora",
     "uploadFile": "Subir archivo",
     "dropFile": "Suelte el archivo aquí o haga clic para subir",
-    "allClients": "Todos los Clientes"
+    "allClients": "Todos los Clientes",
+    "dateFrom": "Desde",
+    "dateTo": "Hasta"
   }
 }

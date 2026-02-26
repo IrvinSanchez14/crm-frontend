@@ -4,6 +4,7 @@
  */
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Header } from '../../../shared/components/organisms/Header';
 import { Sidebar } from '../../../shared/components/organisms/Sidebar';
 import { useAuth } from '../../../shared/hooks/useAuth';
@@ -41,6 +42,7 @@ const ALL_STATUSES: RenderingStatus[] = ['draft', 'sent', 'approved', 'rejected'
 
 export function RenderingReportPage() {
   const { user, logout } = useAuth();
+  const { t } = useTranslation('reports');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [renderings, setRenderings] = useState<RenderingDetail[]>([]);
   const [loading, setLoading] = useState(true);
@@ -111,7 +113,7 @@ export function RenderingReportPage() {
     }
     let grandTotal = 0;
     for (const r of filtered) {
-      const amount = parseFloat(r.items?.reduce((sum, item) => sum + (parseFloat(item.total || item.subtotal || '0')), 0).toString()) || 0;
+      const amount = parseFloat(r.total_amount || '0') || 0;
       grandTotal += amount;
       if (byStatus[r.status]) {
         byStatus[r.status].count += 1;
@@ -171,7 +173,7 @@ export function RenderingReportPage() {
   };
 
   const getRenderingTotal = (rendering: RenderingDetail): number => {
-    return rendering.items?.reduce((sum, item) => sum + (parseFloat(item.total || item.subtotal || '0')), 0) || 0;
+    return parseFloat(rendering.total_amount || '0') || 0;
   };
 
   return (
@@ -193,8 +195,8 @@ export function RenderingReportPage() {
         <div className="px-4 py-5">
           {/* Page header */}
           <div className="mb-6">
-            <Heading variant="h1">Rendering Report</Heading>
-            <Text variant="muted" size="sm">Overview of all renderings by status and totals</Text>
+            <Heading variant="h1">{t('renderingReport')}</Heading>
+            <Text variant="muted" size="sm">{t('renderingReportDescription')}</Text>
           </div>
 
           {error && (
@@ -208,7 +210,7 @@ export function RenderingReportPage() {
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
               {/* Grand total card */}
               <div className="col-span-2 sm:col-span-3 lg:col-span-1 bg-[color:var(--card)] rounded-lg border border-[color:var(--border)] p-4">
-                <Text variant="muted" className="text-xs">Total ({summary.count})</Text>
+                <Text variant="muted" className="text-xs">{t('total')} ({summary.count})</Text>
                 <Text className="font-bold text-lg">{formatCurrency(summary.grandTotal)}</Text>
               </div>
               {ALL_STATUSES.map((status) => {
@@ -254,7 +256,7 @@ export function RenderingReportPage() {
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search by title or description..."
+                placeholder={t('searchPlaceholder')}
                 className="w-full pl-9 pr-3 py-2 border border-[color:var(--border)] rounded-lg bg-[color:var(--background)] text-[color:var(--foreground)] text-sm"
               />
             </div>
@@ -265,7 +267,7 @@ export function RenderingReportPage() {
               onChange={(e) => setStatusFilter(e.target.value as RenderingStatus | 'all')}
               className="px-3 py-2 border border-[color:var(--border)] rounded-lg bg-[color:var(--background)] text-[color:var(--foreground)] text-sm"
             >
-              <option value="all">All Statuses</option>
+              <option value="all">{t('allStatuses')}</option>
               {ALL_STATUSES.map((s) => (
                 <option key={s} value={s}>
                   {s.toUpperCase()}
@@ -277,20 +279,20 @@ export function RenderingReportPage() {
           {/* Table */}
           {loading ? (
             <div className="flex items-center justify-center py-12">
-              <Text variant="muted">Loading report...</Text>
+              <Text variant="muted">{t('loading')}</Text>
             </div>
           ) : filtered.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <svg className="w-12 h-12 mb-3 text-[color:var(--muted-foreground)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
-              <Text variant="muted">No renderings found</Text>
+              <Text variant="muted">{t('noResultsFound')}</Text>
               {statusFilter !== 'all' && (
                 <button
                   onClick={() => setStatusFilter('all')}
                   className="mt-2 text-sm text-[color:var(--primary)] hover:underline"
                 >
-                  Clear filter
+                  {t('clearFilter')}
                 </button>
               )}
             </div>
@@ -300,14 +302,14 @@ export function RenderingReportPage() {
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="bg-[color:var(--muted)]/30 border-b border-[color:var(--border)]">
-                      <th className="text-left px-4 py-3 font-medium text-[color:var(--muted-foreground)]">Title</th>
-                      <th className="text-left px-4 py-3 font-medium text-[color:var(--muted-foreground)]">Description</th>
-                      <th className="text-center px-4 py-3 font-medium text-[color:var(--muted-foreground)]">Status</th>
-                      <th className="text-center px-4 py-3 font-medium text-[color:var(--muted-foreground)]">Items</th>
-                      <th className="text-center px-4 py-3 font-medium text-[color:var(--muted-foreground)]">Images</th>
-                      <th className="text-right px-4 py-3 font-medium text-[color:var(--muted-foreground)]">Total</th>
-                      <th className="text-left px-4 py-3 font-medium text-[color:var(--muted-foreground)]">Created</th>
-                      <th className="text-center px-4 py-3 font-medium text-[color:var(--muted-foreground)]">Export</th>
+                      <th className="text-left px-4 py-3 font-medium text-[color:var(--muted-foreground)]">{t('title')}</th>
+                      <th className="text-left px-4 py-3 font-medium text-[color:var(--muted-foreground)]">{t('description')}</th>
+                      <th className="text-center px-4 py-3 font-medium text-[color:var(--muted-foreground)]">{t('status')}</th>
+                      <th className="text-center px-4 py-3 font-medium text-[color:var(--muted-foreground)]">{t('items')}</th>
+                      <th className="text-center px-4 py-3 font-medium text-[color:var(--muted-foreground)]">{t('images')}</th>
+                      <th className="text-right px-4 py-3 font-medium text-[color:var(--muted-foreground)]">{t('total')}</th>
+                      <th className="text-left px-4 py-3 font-medium text-[color:var(--muted-foreground)]">{t('created')}</th>
+                      <th className="text-center px-4 py-3 font-medium text-[color:var(--muted-foreground)]">{t('export')}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -383,7 +385,7 @@ export function RenderingReportPage() {
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                                 </svg>
                               )}
-                              PDF
+                              {t('pdf')}
                             </button>
                           </div>
                         </td>
@@ -393,7 +395,7 @@ export function RenderingReportPage() {
                   <tfoot>
                     <tr className="bg-[color:var(--muted)]/20 border-t border-[color:var(--border)]">
                       <td colSpan={5} className="px-4 py-3 text-right font-medium text-[color:var(--muted-foreground)]">
-                        Total ({filtered.length} rendering{filtered.length !== 1 ? 's' : ''})
+                        {t('total')} ({filtered.length} rendering{filtered.length !== 1 ? 's' : ''})
                       </td>
                       <td className="px-4 py-3 text-right font-bold text-lg">{formatCurrency(summary.grandTotal)}</td>
                       <td colSpan={2}></td>
@@ -415,7 +417,7 @@ export function RenderingReportPage() {
             <div className="flex items-center justify-between px-6 py-4 border-b border-[color:var(--border)]">
               <div>
                 <Text className="font-semibold">{preview.fileName}</Text>
-                <Text variant="muted" size="sm">PDF Preview</Text>
+                <Text variant="muted" size="sm">{t('pdfPreview')}</Text>
               </div>
               <div className="flex items-center gap-2">
                 <Button variant="primary" size="sm" onClick={downloadFromPreview}>
@@ -423,11 +425,11 @@ export function RenderingReportPage() {
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                     </svg>
-                    Download
+                    {t('download')}
                   </span>
                 </Button>
                 <Button variant="secondary" size="sm" onClick={closePreview}>
-                  Close
+                  {t('common:actions.close')}
                 </Button>
               </div>
             </div>

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Header } from '../../../shared/components/organisms/Header';
 import { Sidebar } from '../../../shared/components/organisms/Sidebar';
 import { RightSidebar } from '../../../shared/components/organisms/RightSidebar';
@@ -16,6 +17,7 @@ import { CreateClientForm } from '../components/CreateClientForm';
 export function ClientsPage() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const { t } = useTranslation('clients');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isRightSidebarOpen, setIsRightSidebarOpen] = useState(false);
   const [clients, setClients] = useState<Client[]>([]);
@@ -107,12 +109,12 @@ export function ClientsPage() {
     () => [
       {
         key: 'name',
-        label: 'Client Name',
+        label: t('name'),
         span: 3,
       },
       {
         key: 'email',
-        label: 'Email',
+        label: t('email'),
         span: 3,
         render: (client, _isSelected) => (
           <Text
@@ -128,7 +130,7 @@ export function ClientsPage() {
       },
       {
         key: 'phone',
-        label: 'Phone',
+        label: t('phone'),
         span: 2,
         render: (client, _isSelected) => (
           <Text
@@ -144,7 +146,7 @@ export function ClientsPage() {
       },
       {
         key: 'created_at',
-        label: 'Created',
+        label: t('common:table.created'),
         span: 4,
         align: 'right',
         render: (client, _isSelected) => (
@@ -174,13 +176,13 @@ export function ClientsPage() {
 
       <div
         className={cn(
-          'w-full pt-2',
+          'pt-2',
           'transition-all duration-500 ease-out',
           isSidebarOpen ? 'lg:ml-64' : 'lg:ml-0'
         )}
       >
         <div className="mb-4 flex items-center justify-between px-4">
-          <Heading level={1}>Clients</Heading>
+          <Heading level={1}>{t('title')}</Heading>
           <Button
             onClick={openRightSidebar}
             variant="ghost"
@@ -201,7 +203,7 @@ export function ClientsPage() {
                 d="M12 4v16m8-8H4"
               />
             </svg>
-            Add
+            {t('common:actions.add')}
           </Button>
         </div>
 
@@ -212,7 +214,7 @@ export function ClientsPage() {
           getRowId={(client) => client.id}
           loading={loading}
           error={error}
-          emptyMessage="No clients found"
+          emptyMessage={t('common:table.noResults')}
           selectedRows={selectedClients}
           onSelectionChange={setSelectedClients}
           selectable={true}
@@ -234,7 +236,7 @@ export function ClientsPage() {
       <RightSidebar
         isOpen={isRightSidebarOpen}
         onClose={closeRightSidebar}
-        title="Create Client"
+        title={t('createClient')}
       >
         <CreateClientForm onSuccess={handleClientCreated} onCancel={closeRightSidebar} />
       </RightSidebar>

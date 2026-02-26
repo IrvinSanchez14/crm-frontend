@@ -5,7 +5,7 @@
  * Items are saved immediately via API as they are added.
  */
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Header } from '../../../shared/components/organisms/Header';
 import { Sidebar } from '../../../shared/components/organisms/Sidebar';
@@ -26,6 +26,7 @@ import {
   addBudgetItem,
   deleteBudgetItem,
   deleteBudgetCategory,
+  reorderBudgetCategories,
   uploadImage,
   getCatalogItems,
   getBudgetItemSuggestions,
@@ -37,6 +38,25 @@ import {
   type CatalogItem,
 } from '../../../infrastructure/api/api.client';
 import { decodeJwt } from '../../../core/utils/jwt.utils';
+import { formatCurrencyDisplay } from '../../../core/utils/currency.utils';
+import { calcSellingPrice, calcProfit, calcLineSubtotal } from '../../../core/utils/pricing.utils';
+import { useTranslation } from 'react-i18next';
+import { EditBudgetItemForm } from '../components/EditBudgetItemForm';
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+  useSortable,
+  arrayMove,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 // ---------------------------------------------------------------------------
 // Autocomplete input — Google-style suggestions from catalog items
@@ -114,7 +134,7 @@ function AutocompleteInput({
     setHighlighted(-1);
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (!open || entries.length === 0) return;
     if (e.key === 'ArrowDown') {
       e.preventDefault();
@@ -137,8 +157,7 @@ function AutocompleteInput({
 
   return (
     <div ref={wrapperRef} className="relative">
-      <input
-        type="text"
+      <textarea
         value={value}
         onChange={(e) => {
           onChange(e.target.value);
@@ -148,7 +167,8 @@ function AutocompleteInput({
         onFocus={() => { if (value.trim()) setOpen(true); }}
         onKeyDown={handleKeyDown}
         placeholder={placeholder}
-        className="w-full px-2 py-1.5 border border-[color:var(--border)] rounded bg-[color:var(--background)] text-[color:var(--foreground)] text-sm"
+        rows={2}
+        className="w-full px-2 py-1.5 border border-[color:var(--border)] rounded bg-[color:var(--background)] text-[color:var(--foreground)] text-sm resize-y"
       />
       {open && entries.length > 0 && (
         <ul
@@ -172,7 +192,7 @@ function AutocompleteInput({
                 <>
                   <span className="font-medium">{entry.item.name}</span>
                   <span className="ml-2 text-xs text-[color:var(--muted-foreground)]">
-                    {entry.item.unity} &middot; {formatCurrency(entry.item.price_base)}
+                    {entry.item.unity} &middot; {formatCurrencyDisplay(entry.item.price_base)}
                   </span>
                 </>
               ) : (
@@ -209,21 +229,11 @@ const emptyNewItem: NewItemRow = {
   catalog_item_id: '',
 };
 
-const formatCurrency = (amount: string | number) => {
-  const num = typeof amount === 'string' ? parseFloat(amount) : amount;
-  if (isNaN(num)) return '$0.00';
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    minimumFractionDigits: 2,
-  }).format(num);
-};
-
 const itemSubtotal = (item: NewItemRow): number => {
   const qty = parseFloat(item.quantity);
   const price = parseFloat(item.unit_price);
   if (isNaN(qty) || isNaN(price)) return 0;
-  return qty * price;
+  return calcLineSubtotal(qty, price);
 };
 
 // ---------------------------------------------------------------------------
@@ -289,11 +299,42 @@ function ItemRowCells({ item, catalogItems, itemSuggestions, onChange, onCatalog
           className="w-full px-2 py-1.5 border border-[color:var(--border)] rounded bg-[color:var(--background)] text-[color:var(--foreground)] text-sm text-right"
         />
       </td>
+      <td className="px-3 py-2 text-right text-[color:var(--foreground)]">
+        {formatCurrencyDisplay(calcSellingPrice(parseFloat(item.unit_price) || 0))}
+      </td>
+      <td className="px-3 py-2 text-right text-[color:var(--foreground)]">
+        {formatCurrencyDisplay(calcProfit(parseFloat(item.unit_price) || 0))}
+      </td>
       <td className="px-3 py-2 text-right font-medium text-[color:var(--foreground)]">
-        {formatCurrency(itemSubtotal(item))}
+        {formatCurrencyDisplay(itemSubtotal(item))}
       </td>
       <td className="px-3 py-2">{actionButton}</td>
     </>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Sortable category card wrapper
+// ---------------------------------------------------------------------------
+
+interface SortableCategoryCardProps {
+  id: string;
+  children: (dragHandleProps: Record<string, unknown>) => React.ReactNode;
+}
+
+function SortableCategoryCard({ id, children }: SortableCategoryCardProps) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <div ref={setNodeRef} style={style} className="bg-[color:var(--card)] rounded-lg border border-[color:var(--border)] overflow-hidden">
+      {children({ ...attributes, ...listeners })}
+    </div>
   );
 }
 
@@ -305,6 +346,7 @@ export function CreateBudgetPage() {
   const { id: visitId } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user, logout } = useAuth();
+  const { t } = useTranslation('budgets');
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [visit, setVisit] = useState<VisitDetail | null>(null);
@@ -330,6 +372,8 @@ export function CreateBudgetPage() {
 
   // Delete states
   const [deletingItem, setDeletingItem] = useState<string | null>(null);
+  const [editingItemId, setEditingItemId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'budget' | 'order'>('budget');
   const [deletingCategory, setDeletingCategory] = useState<string | null>(null);
 
   // Catalog & suggestions
@@ -350,7 +394,7 @@ export function CreateBudgetPage() {
       if (!visitId) return;
       const companyId = getCompanyId();
       if (!companyId) {
-        setError('Company ID not found. Please log in again.');
+        setError(t('common:messages.sessionExpired'));
         setLoading(false);
         return;
       }
@@ -387,7 +431,7 @@ export function CreateBudgetPage() {
         setCatalogItems(catalog);
         setItemSuggestions(suggestions);
       } catch (err) {
-        if (!cancelled) setError(err instanceof Error ? err.message : 'Failed to initialize budget');
+        if (!cancelled) setError(err instanceof Error ? err.message : t('common:messages.errorLoading'));
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -454,9 +498,9 @@ export function CreateBudgetPage() {
     if (!budget) return;
     const item = getNewItem(categoryId);
 
-    if (!item.name.trim()) { setItemError((p) => ({ ...p, [categoryId]: 'Item name is required' })); return; }
-    if (!item.quantity || parseFloat(item.quantity) <= 0) { setItemError((p) => ({ ...p, [categoryId]: 'Quantity must be > 0' })); return; }
-    if (!item.unit_price || parseFloat(item.unit_price) < 0) { setItemError((p) => ({ ...p, [categoryId]: 'Unit price is required' })); return; }
+    if (!item.name.trim()) { setItemError((p) => ({ ...p, [categoryId]: t('itemNameRequired') })); return; }
+    if (!item.quantity || parseFloat(item.quantity) <= 0) { setItemError((p) => ({ ...p, [categoryId]: t('quantityRequired') })); return; }
+    if (!item.unit_price || parseFloat(item.unit_price) < 0) { setItemError((p) => ({ ...p, [categoryId]: t('unitPriceRequired') })); return; }
 
     const companyId = getCompanyId();
     if (!companyId) return;
@@ -475,7 +519,7 @@ export function CreateBudgetPage() {
       await refreshBudget();
       setNewItems((p) => { const n = { ...p }; delete n[categoryId]; return n; });
     } catch (err) {
-      setItemError((p) => ({ ...p, [categoryId]: err instanceof Error ? err.message : 'Failed to add item' }));
+      setItemError((p) => ({ ...p, [categoryId]: err instanceof Error ? err.message : t('common:messages.errorLoading') }));
     } finally {
       setSavingItem(null);
     }
@@ -492,7 +536,7 @@ export function CreateBudgetPage() {
       await deleteBudgetItem(budget.id, categoryId, itemId, companyId);
       await refreshBudget();
     } catch (err) {
-      setItemError((p) => ({ ...p, [categoryId]: err instanceof Error ? err.message : 'Failed to delete item' }));
+      setItemError((p) => ({ ...p, [categoryId]: err instanceof Error ? err.message : t('common:messages.errorLoading') }));
     } finally {
       setDeletingItem(null);
     }
@@ -507,18 +551,56 @@ export function CreateBudgetPage() {
       await deleteBudgetCategory(budget.id, categoryId, companyId);
       await refreshBudget();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to delete category');
+      setError(err instanceof Error ? err.message : t('common:messages.errorLoading'));
     } finally {
       setDeletingCategory(null);
     }
   };
+
+  // ---- Category drag-and-drop reorder ----
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
+  );
+
+  const sortedCategories = useMemo(
+    () => budget ? [...budget.budget_categories].sort((a, b) => a.order_index - b.order_index) : [],
+    [budget]
+  );
+
+  const handleDragEnd = useCallback(async (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id || !budget) return;
+
+    const oldIndex = sortedCategories.findIndex((c) => c.id === active.id);
+    const newIndex = sortedCategories.findIndex((c) => c.id === over.id);
+    if (oldIndex === -1 || newIndex === -1) return;
+
+    const reordered = arrayMove(sortedCategories, oldIndex, newIndex);
+
+    // Optimistic update
+    setBudget({
+      ...budget,
+      budget_categories: reordered.map((c, idx) => ({ ...c, order_index: idx })),
+    });
+
+    // Persist to backend
+    const companyId = getCompanyId();
+    if (!companyId) return;
+    try {
+      await reorderBudgetCategories(budget.id, reordered.map((c) => c.id), companyId);
+    } catch (err) {
+      // Revert on failure
+      await refreshBudget();
+    }
+  }, [budget, sortedCategories, getCompanyId, refreshBudget]);
 
   // ---- Image upload ----
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (categoryImages.length >= 3) { setCategoryError('Maximum 3 images per category'); return; }
+    if (categoryImages.length >= 3) { setCategoryError(t('maxImagesError')); return; }
     const companyId = getCompanyId();
     if (!companyId) return;
     try {
@@ -527,7 +609,7 @@ export function CreateBudgetPage() {
       const result = await uploadImage(file, companyId, 'budgets');
       setCategoryImages((p) => [...p, result.url]);
     } catch (err) {
-      setCategoryError(err instanceof Error ? err.message : 'Failed to upload image');
+      setCategoryError(err instanceof Error ? err.message : t('common:messages.errorLoading'));
     } finally {
       setUploadingImage(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
@@ -540,7 +622,7 @@ export function CreateBudgetPage() {
 
   const handleSaveCategory = async () => {
     if (!budget) return;
-    if (!categoryName.trim()) { setCategoryError('Category name is required'); return; }
+    if (!categoryName.trim()) { setCategoryError(t('categoryNameRequired')); return; }
 
     const validItems = formItems.filter(
       (r) => r.name.trim() && parseFloat(r.quantity) > 0 && parseFloat(r.unit_price) >= 0,
@@ -575,7 +657,7 @@ export function CreateBudgetPage() {
       setCategoryError(null);
       setShowCategoryModal(false);
     } catch (err) {
-      setCategoryError(err instanceof Error ? err.message : 'Failed to save category');
+      setCategoryError(err instanceof Error ? err.message : t('common:messages.errorLoading'));
     } finally {
       setSavingCategory(false);
     }
@@ -595,18 +677,20 @@ export function CreateBudgetPage() {
     ? budget.budget_categories.reduce((s, c) => s + parseFloat(c.subtotal || '0'), 0)
     : 0;
 
-  const pageTitle = isEditMode ? 'Edit Budget' : 'Create Budget';
+  const pageTitle = isEditMode ? t('editBudget') : t('createBudget');
 
   // ---- Table header (shared) ----
 
   const tableHead = (
     <thead>
       <tr className="bg-[color:var(--muted)]/30 border-b border-[color:var(--border)]">
-        <th className="text-left px-3 py-2 font-medium text-[color:var(--muted-foreground)] min-w-[200px]">Name</th>
-        <th className="text-left px-3 py-2 font-medium text-[color:var(--muted-foreground)] w-24">Unit</th>
-        <th className="text-right px-3 py-2 font-medium text-[color:var(--muted-foreground)] w-20">Qty</th>
-        <th className="text-right px-3 py-2 font-medium text-[color:var(--muted-foreground)] w-28">Unit Price</th>
-        <th className="text-right px-3 py-2 font-medium text-[color:var(--muted-foreground)] w-28">Subtotal</th>
+        <th className="text-left px-3 py-2 font-medium text-[color:var(--muted-foreground)] min-w-[200px]">{t('name')}</th>
+        <th className="text-left px-3 py-2 font-medium text-[color:var(--muted-foreground)] w-24">{t('unit')}</th>
+        <th className="text-right px-3 py-2 font-medium text-[color:var(--muted-foreground)] w-20">{t('quantity')}</th>
+        <th className="text-right px-3 py-2 font-medium text-[color:var(--muted-foreground)] w-28">{t('realPrice')}</th>
+        <th className="text-right px-3 py-2 font-medium text-[color:var(--muted-foreground)] w-32">{t('realPriceWithGanancia')}</th>
+        <th className="text-right px-3 py-2 font-medium text-[color:var(--muted-foreground)] w-28">{t('gananciaBruta')}</th>
+        <th className="text-right px-3 py-2 font-medium text-[color:var(--muted-foreground)] w-28">{t('subtotal')}</th>
         <th className="w-12"></th>
       </tr>
     </thead>
@@ -631,7 +715,7 @@ export function CreateBudgetPage() {
         onLogout={logout}
       />
       <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
-      <main className={cn('w-full pt-5', 'transition-all duration-500 ease-out', isSidebarOpen ? 'lg:ml-64' : 'lg:ml-0')}>
+      <main className={cn('pt-5', 'transition-all duration-500 ease-out', isSidebarOpen ? 'lg:ml-64' : 'lg:ml-0')}>
         {content}
       </main>
     </div>
@@ -640,7 +724,7 @@ export function CreateBudgetPage() {
   if (loading) {
     return shell(
       <div className="p-6 flex items-center justify-center">
-        <Text variant="muted">Loading budget...</Text>
+        <Text variant="muted">{t('loading')}</Text>
       </div>,
     );
   }
@@ -649,7 +733,7 @@ export function CreateBudgetPage() {
     return shell(
       <div className="p-6">
         <div className="p-4 bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200 rounded-lg mb-4">{error}</div>
-        <Button variant="secondary" onClick={() => navigate(`/budgets/${visitId}`)}>Back to Visit</Button>
+        <Button variant="secondary" onClick={() => navigate(`/budgets/${visitId}`)}>{t('backToVisit')}</Button>
       </div>,
     );
   }
@@ -668,8 +752,8 @@ export function CreateBudgetPage() {
           <Text variant="muted" size="sm">{project?.name} &mdash; {visit?.title}</Text>
         </div>
         <div className="text-right">
-          <Text variant="muted" size="sm">Grand Total</Text>
-          <Heading variant="h2">{formatCurrency(grandTotal)}</Heading>
+          <Text variant="muted" size="sm">{t('grandTotal')}</Text>
+          <Heading variant="h2">{formatCurrencyDisplay(grandTotal)}</Heading>
         </div>
       </div>
 
@@ -677,10 +761,40 @@ export function CreateBudgetPage() {
         <div className="p-4 bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200 rounded-lg mb-6">{error}</div>
       )}
 
+      {/* ========== Tabs ========== */}
+      {budget && sortedCategories.length > 0 && (
+        <div className="flex gap-1 mb-6 border-b border-[color:var(--border)]">
+          <button
+            type="button"
+            onClick={() => setActiveTab('budget')}
+            className={cn(
+              'px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px',
+              activeTab === 'budget'
+                ? 'border-[color:var(--primary)] text-[color:var(--primary)]'
+                : 'border-transparent text-[color:var(--muted-foreground)] hover:text-[color:var(--foreground)]'
+            )}
+          >
+            {t('tabBudget')}
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('order')}
+            className={cn(
+              'px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px',
+              activeTab === 'order'
+                ? 'border-[color:var(--primary)] text-[color:var(--primary)]'
+                : 'border-transparent text-[color:var(--muted-foreground)] hover:text-[color:var(--foreground)]'
+            )}
+          >
+            {t('tabOrderCategories')}
+          </button>
+        </div>
+      )}
+
       {/* ========== Saved categories ========== */}
-      {budget && budget.budget_categories.length > 0 && (
-        <div className="space-y-4 mb-8">
-          {budget.budget_categories.map((category: BudgetCategoryDetail) => {
+      {budget && sortedCategories.length > 0 && activeTab === 'budget' && (
+        <div className="space-y-4 mb-8 max-h-[60vh] overflow-y-auto pr-1">
+          {sortedCategories.map((category: BudgetCategoryDetail) => {
             const catTotal = category.budget_items.reduce((s, i) => s + parseFloat(i.subtotal || '0'), 0);
             const ni = getNewItem(category.id);
             const isSaving = savingItem === category.id;
@@ -693,7 +807,7 @@ export function CreateBudgetPage() {
                 <div className="flex items-center justify-between px-6 py-4 bg-[color:var(--muted)]/30">
                   <Heading variant="h4">{category.name}</Heading>
                   <div className="flex items-center gap-3">
-                    <Text className="font-semibold text-lg">{formatCurrency(catTotal)}</Text>
+                    <Text className="font-semibold text-lg">{formatCurrencyDisplay(catTotal)}</Text>
                     <button
                       type="button"
                       onClick={() => handleDeleteCategory(category.id)}
@@ -719,27 +833,59 @@ export function CreateBudgetPage() {
                       {/* Saved items */}
                       {category.budget_items.map((item) => {
                         const deleting = deletingItem === item.id;
+                        if (editingItemId === item.id) {
+                          return (
+                            <tr key={item.id} className="border-b border-[color:var(--border)]">
+                              <td colSpan={8} className="px-3 py-3">
+                                <EditBudgetItemForm
+                                  budgetId={budget!.id}
+                                  categoryId={category.id}
+                                  item={item}
+                                  onSuccess={() => {
+                                    setEditingItemId(null);
+                                    refreshBudget();
+                                  }}
+                                  onCancel={() => setEditingItemId(null)}
+                                />
+                              </td>
+                            </tr>
+                          );
+                        }
                         return (
                           <tr key={item.id} className="border-b border-[color:var(--border)]">
-                            <td className="px-3 py-3">{item.description}</td>
+                            <td className="px-3 py-3 whitespace-pre-wrap">{item.description}</td>
                             <td className="px-3 py-3">{item.unit || '\u2014'}</td>
                             <td className="text-right px-3 py-3">{item.quantity}</td>
-                            <td className="text-right px-3 py-3">{formatCurrency(item.unit_price)}</td>
-                            <td className="text-right px-3 py-3 font-medium">{formatCurrency(item.subtotal)}</td>
+                            <td className="text-right px-3 py-3">{formatCurrencyDisplay(item.unit_price)}</td>
+                            <td className="text-right px-3 py-3">{formatCurrencyDisplay(calcSellingPrice(parseFloat(item.unit_price)))}</td>
+                            <td className="text-right px-3 py-3">{formatCurrencyDisplay(calcProfit(parseFloat(item.unit_price)))}</td>
+                            <td className="text-right px-3 py-3 font-medium">{formatCurrencyDisplay(item.subtotal)}</td>
                             <td className="px-3 py-3">
-                              <button
-                                type="button"
-                                onClick={() => handleDeleteItem(category.id, item.id)}
-                                disabled={deleting}
-                                className={cn('text-[color:var(--muted-foreground)] hover:text-[color:var(--destructive)] transition-colors', deleting && 'opacity-50 cursor-not-allowed')}
-                                aria-label="Delete item"
-                              >
-                                {deleting ? spinner : (
+                              <div className="flex gap-1 items-center">
+                                <button
+                                  type="button"
+                                  onClick={() => setEditingItemId(item.id)}
+                                  className="text-[color:var(--muted-foreground)] hover:text-[color:var(--primary)] transition-colors"
+                                  aria-label="Edit item"
+                                >
                                   <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                                   </svg>
-                                )}
-                              </button>
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteItem(category.id, item.id)}
+                                  disabled={deleting}
+                                  className={cn('text-[color:var(--muted-foreground)] hover:text-[color:var(--destructive)] transition-colors', deleting && 'opacity-50 cursor-not-allowed')}
+                                  aria-label="Delete item"
+                                >
+                                  {deleting ? spinner : (
+                                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                  )}
+                                </button>
+                              </div>
                             </td>
                           </tr>
                         );
@@ -794,18 +940,56 @@ export function CreateBudgetPage() {
         </div>
       )}
 
+      {/* ========== Order Categories Tab ========== */}
+      {budget && sortedCategories.length > 0 && activeTab === 'order' && (
+        <div className="mb-8">
+          <Text variant="muted" size="sm" className="mb-4">{t('orderCategoriesDescription')}</Text>
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+            <SortableContext items={sortedCategories.map((c) => c.id)} strategy={verticalListSortingStrategy}>
+              <div className="space-y-2">
+                {sortedCategories.map((category, idx) => (
+                  <SortableCategoryCard key={category.id} id={category.id}>
+                    {(dragHandleProps) => (
+                      <div className="flex items-center gap-3 px-4 py-3">
+                        <button
+                          type="button"
+                          className="cursor-grab active:cursor-grabbing text-[color:var(--muted-foreground)] hover:text-[color:var(--foreground)] transition-colors touch-none"
+                          aria-label="Drag to reorder"
+                          {...dragHandleProps}
+                        >
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8h16M4 16h16" />
+                          </svg>
+                        </button>
+                        <span className="text-sm font-medium text-[color:var(--muted-foreground)] w-6">{idx + 1}.</span>
+                        <Text variant="default" className="font-medium flex-1">{category.name}</Text>
+                        <Text variant="muted" size="sm">
+                          {category.budget_items.length} {t('items').toLowerCase()}
+                        </Text>
+                      </div>
+                    )}
+                  </SortableCategoryCard>
+                ))}
+              </div>
+            </SortableContext>
+          </DndContext>
+        </div>
+      )}
+
       {/* ========== Add Category Button + Done ========== */}
-      <div className="flex items-center justify-between mb-6">
-        <Button variant="primary" onClick={() => setShowCategoryModal(true)}>
-          <span className="flex items-center gap-2">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
-            Add Category
-          </span>
-        </Button>
-        <Button variant="secondary" onClick={() => navigate(`/budgets/${visitId}`)}>Done</Button>
-      </div>
+      {activeTab === 'budget' && (
+        <div className="flex items-center justify-between mb-6">
+          <Button variant="primary" onClick={() => setShowCategoryModal(true)}>
+            <span className="flex items-center gap-2">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              {t('addCategory')}
+            </span>
+          </Button>
+          <Button variant="secondary" onClick={() => navigate(`/budgets/${visitId}`)}>{t('done')}</Button>
+        </div>
+      )}
 
       {/* ========== Add Category Modal ========== */}
       {showCategoryModal && (
@@ -817,7 +1001,7 @@ export function CreateBudgetPage() {
           <div className="relative bg-[color:var(--card)] rounded-lg border border-[color:var(--border)] shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto mx-4 p-6">
             {/* Modal header */}
             <div className="flex items-center justify-between mb-6">
-              <Heading variant="h3">Add Category</Heading>
+              <Heading variant="h3">{t('addCategory')}</Heading>
               <button
                 type="button"
                 onClick={closeCategoryModal}
@@ -836,19 +1020,19 @@ export function CreateBudgetPage() {
 
             {/* Name */}
             <div className="mb-6 space-y-2">
-              <Label htmlFor="category-name">Category Name <span className="text-[color:var(--destructive)]">*</span></Label>
+              <Label htmlFor="category-name">{t('categoryName')} <span className="text-[color:var(--destructive)]">*</span></Label>
               <Input
                 id="category-name"
                 value={categoryName}
                 onChange={(e) => setCategoryName(e.target.value)}
-                placeholder="e.g. Landscaping, Electrical"
+                placeholder={t('categoryPlaceholder')}
                 className="w-full px-3 py-2 border border-[color:var(--border)] rounded-lg bg-[color:var(--background)]"
               />
             </div>
 
             {/* Images */}
             <div className="mb-6">
-              <Label>Images (max 3)</Label>
+              <Label>{t('maxImages')}</Label>
               <div className="flex items-center gap-3 mt-2">
                 {categoryImages.map((url, idx) => (
                   <div key={idx} className="relative group">
@@ -886,7 +1070,7 @@ export function CreateBudgetPage() {
 
             {/* Items table */}
             <div className="mb-6">
-              <Label className="mb-2 block">Items</Label>
+              <Label className="mb-2 block">{t('items')}</Label>
               <div className="overflow-x-auto border border-[color:var(--border)] rounded-lg">
                 <table className="w-full text-sm">
                   {tableHead}
@@ -923,11 +1107,11 @@ export function CreateBudgetPage() {
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                           </svg>
-                          Add row
+                          {t('addRow')}
                         </button>
                       </td>
-                      <td colSpan={3} className="px-3 py-2 text-right font-medium text-[color:var(--muted-foreground)]">Category Total</td>
-                      <td className="px-3 py-2 text-right font-semibold text-[color:var(--foreground)]">{formatCurrency(formTotal())}</td>
+                      <td colSpan={5} className="px-3 py-2 text-right font-medium text-[color:var(--muted-foreground)]">{t('categoryTotal')}</td>
+                      <td className="px-3 py-2 text-right font-semibold text-[color:var(--foreground)]">{formatCurrencyDisplay(formTotal())}</td>
                       <td></td>
                     </tr>
                   </tfoot>
@@ -937,9 +1121,9 @@ export function CreateBudgetPage() {
 
             {/* Modal footer */}
             <div className="flex justify-end gap-3">
-              <Button variant="secondary" onClick={closeCategoryModal}>Cancel</Button>
+              <Button variant="secondary" onClick={closeCategoryModal}>{t('common:actions.cancel')}</Button>
               <Button variant="primary" onClick={handleSaveCategory} disabled={savingCategory}>
-                {savingCategory ? 'Saving...' : 'Save Category'}
+                {savingCategory ? t('saving') : t('saveCategory')}
               </Button>
             </div>
           </div>

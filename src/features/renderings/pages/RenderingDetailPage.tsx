@@ -4,8 +4,9 @@
  * Tab 1: 3D Renders, Tab 2: Proposed Materials, Tab 3: Item Details
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Header } from '../../../shared/components/organisms/Header';
 import { Sidebar } from '../../../shared/components/organisms/Sidebar';
 import { useAuth } from '../../../shared/hooks/useAuth';
@@ -27,12 +28,13 @@ import {
 } from '../../../infrastructure/api/api.client';
 import { decodeJwt } from '../../../core/utils/jwt.utils';
 
-const TABS = ['3D Renders', 'Proposed Materials', 'Item Details'] as const;
-
 export function RenderingDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user, logout } = useAuth();
+  const { t } = useTranslation('renderings');
+
+  const TABS = [t('tab3DRenders'), t('tabProposedMaterials'), t('tabItemDetails')];
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [rendering, setRendering] = useState<RenderingDetail | null>(null);
@@ -44,6 +46,7 @@ export function RenderingDetailPage() {
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState<RenderingUpdate>({});
   const [activeTab, setActiveTab] = useState(0);
+  const hasLoadedRef = useRef(false);
 
   const getCompanyId = useCallback((): string | null => {
     if (!user?.access_token) return null;
@@ -62,10 +65,11 @@ export function RenderingDetailPage() {
     }
 
     try {
-      setLoading(true);
+      if (!hasLoadedRef.current) setLoading(true);
       setError(null);
       const data = await getRendering(id, companyId);
       setRendering(data);
+      hasLoadedRef.current = true;
       setFormData({
         title: data.title,
         description: data.description || undefined,
@@ -165,13 +169,13 @@ export function RenderingDetailPage() {
         <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
         <main
           className={cn(
-            'w-full pt-5',
+            'pt-5',
             'transition-all duration-500 ease-out',
             isSidebarOpen ? 'lg:ml-64' : 'lg:ml-0'
           )}
         >
           <div className="p-6 flex items-center justify-center">
-            <Text variant="muted">Loading rendering...</Text>
+            <Text variant="muted">{t('loading')}</Text>
           </div>
         </main>
       </div>
@@ -189,7 +193,7 @@ export function RenderingDetailPage() {
         <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
         <main
           className={cn(
-            'w-full pt-5',
+            'pt-5',
             'transition-all duration-500 ease-out',
             isSidebarOpen ? 'lg:ml-64' : 'lg:ml-0'
           )}
@@ -199,7 +203,7 @@ export function RenderingDetailPage() {
               {error}
             </div>
             <Button variant="secondary" onClick={() => navigate('/renderings')}>
-              Back to Renderings
+              {t('backToRenderings')}
             </Button>
           </div>
         </main>
@@ -218,7 +222,7 @@ export function RenderingDetailPage() {
 
       <main
         className={cn(
-          'w-full pt-5',
+          'pt-5',
           'transition-all duration-500 ease-out',
           isSidebarOpen ? 'lg:ml-64' : 'lg:ml-0'
         )}
@@ -247,27 +251,27 @@ export function RenderingDetailPage() {
               onClick={handleSaveRendering}
               disabled={savingRendering}
             >
-              {savingRendering ? 'Saving...' : saveSuccess ? 'Saved!' : 'Save Rendering'}
+              {savingRendering ? t('saving') : saveSuccess ? t('savedSuccess') : t('saveRendering')}
             </Button>
             {isEditing ? (
               <>
                 <Button variant="secondary" onClick={handleSave} disabled={saving}>
-                  {saving ? 'Updating...' : 'Update'}
+                  {saving ? t('updating') : t('update')}
                 </Button>
                 <Button variant="secondary" onClick={handleCancelEdit} disabled={saving}>
-                  Cancel
+                  {t('common:actions.cancel')}
                 </Button>
               </>
             ) : (
               <Button variant="secondary" onClick={() => setIsEditing(true)}>
-                Edit
+                {t('common:actions.edit')}
               </Button>
             )}
           </div>
 
           {saveSuccess && (
             <div className="p-4 bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 rounded-lg mb-6">
-              Rendering saved successfully! A version snapshot has been created.
+              {t('renderingSavedSuccessfully')}
             </div>
           )}
 
@@ -279,7 +283,7 @@ export function RenderingDetailPage() {
 
           {/* Rendering Info Card */}
           <div className="bg-[color:var(--card)] rounded-lg border border-[color:var(--border)] p-6 mb-6">
-            <Heading variant="h3" className="mb-4">Rendering Information</Heading>
+            <Heading variant="h3" className="mb-4">{t('renderingDetails')}</Heading>
 
             {isEditing ? (
               <div className="space-y-4">
@@ -296,7 +300,7 @@ export function RenderingDetailPage() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="status">Status</Label>
+                    <Label htmlFor="status">{t('common:clients.status')}</Label>
                     <select
                       id="status"
                       value={formData.status || 'draft'}
@@ -311,7 +315,7 @@ export function RenderingDetailPage() {
                     </select>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="expiration_date">Expiration Date</Label>
+                    <Label htmlFor="expiration_date">{t('expiration')}</Label>
                     <input
                       id="expiration_date"
                       type="date"
@@ -323,7 +327,7 @@ export function RenderingDetailPage() {
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="description">Description</Label>
+                  <Label htmlFor="description">{t('description')}</Label>
                   <textarea
                     id="description"
                     value={formData.description || ''}
@@ -337,26 +341,26 @@ export function RenderingDetailPage() {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
-                  <Text variant="muted" className="text-xs mb-1">Status</Text>
+                  <Text variant="muted" className="text-xs mb-1">{t('common:clients.status')}</Text>
                   <span className={cn('inline-block px-2 py-1 rounded-full text-xs font-medium', statusColors[rendering?.status || 'draft'])}>
                     {rendering?.status.toUpperCase()}
                   </span>
                 </div>
                 <div>
-                  <Text variant="muted" className="text-xs mb-1">Expiration</Text>
+                  <Text variant="muted" className="text-xs mb-1">{t('expiration')}</Text>
                   <Text variant="default">
                     {rendering?.expiration_date ? new Date(rendering.expiration_date).toLocaleDateString() : '\u2014'}
                   </Text>
                 </div>
                 <div>
-                  <Text variant="muted" className="text-xs mb-1">Created</Text>
+                  <Text variant="muted" className="text-xs mb-1">{t('common:table.created')}</Text>
                   <Text variant="default">
                     {rendering?.created_at ? new Date(rendering.created_at).toLocaleDateString() : '\u2014'}
                   </Text>
                 </div>
                 {rendering?.description && (
                   <div className="md:col-span-3">
-                    <Text variant="muted" className="text-xs mb-1">Description</Text>
+                    <Text variant="muted" className="text-xs mb-1">{t('description')}</Text>
                     <Text variant="default">{rendering.description}</Text>
                   </div>
                 )}

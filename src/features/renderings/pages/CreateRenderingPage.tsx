@@ -1,6 +1,6 @@
 /**
  * Create Rendering Page
- * Full-page form for creating a new rendering
+ * Full-page form for creating a new rendering — select project, then optional budget
  */
 
 import { useState, useEffect, useCallback, useMemo, type FormEvent } from 'react';
@@ -16,20 +16,22 @@ import { useAuth } from '../../../shared/hooks/useAuth';
 import { cn } from '../../../core/utils/cn';
 import {
   createRendering,
-  getVisits,
+  getProjects,
   getBudgets,
   type RenderingCreate,
-  type VisitDetail,
+  type ProjectDetail,
   type BudgetDetail
 } from '../../../infrastructure/api/api.client';
 import { decodeJwt } from '../../../core/utils/jwt.utils';
+import { useTranslation } from 'react-i18next';
 
 export function CreateRenderingPage() {
   const { user, logout } = useAuth();
+  const { t } = useTranslation('renderings');
   const navigate = useNavigate();
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [visits, setVisits] = useState<VisitDetail[]>([]);
+  const [projects, setProjects] = useState<ProjectDetail[]>([]);
   const [budgets, setBudgets] = useState<BudgetDetail[]>([]);
   const [loading, setLoading] = useState(false);
   const [dataLoading, setDataLoading] = useState(true);
@@ -37,42 +39,37 @@ export function CreateRenderingPage() {
   const [formData, setFormData] = useState({
     title: '',
     description: '',
-    visit_id: '',
+    project_id: '',
     budget_id: '',
     expiration_date: '',
     notes: '',
   });
 
-  // Get company_id from JWT token
   const getCompanyId = useCallback((): string | null => {
     if (!user?.access_token) return null;
     const payload = decodeJwt(user.access_token);
     return payload?.company_id || null;
   }, [user]);
 
-  // Fetch visits for dropdown
-  const fetchVisits = useCallback(async () => {
+  const fetchProjects = useCallback(async () => {
     const companyId = getCompanyId();
     if (!companyId) return;
-
     try {
-      const data = await getVisits({
+      const data = await getProjects({
         company_id: companyId,
         skip: 0,
         limit: 1000,
         include_details: true,
       });
-      setVisits(data);
+      setProjects(data);
     } catch (err) {
-      console.error('Failed to load visits:', err);
+      console.error('Failed to load projects:', err);
     }
   }, [getCompanyId]);
 
-  // Fetch budgets for dropdown
   const fetchBudgets = useCallback(async () => {
     const companyId = getCompanyId();
     if (!companyId) return;
-
     try {
       const data = await getBudgets({
         company_id: companyId,
@@ -85,45 +82,35 @@ export function CreateRenderingPage() {
     }
   }, [getCompanyId]);
 
-  // Fetch data on mount
   useEffect(() => {
     const loadData = async () => {
       setDataLoading(true);
-      await Promise.all([fetchVisits(), fetchBudgets()]);
+      await Promise.all([fetchProjects(), fetchBudgets()]);
       setDataLoading(false);
     };
     loadData();
-  }, [fetchVisits, fetchBudgets]);
+  }, [fetchProjects, fetchBudgets]);
 
-  // Convert visits to combobox options
-  const visitOptions: ComboboxOption[] = useMemo(
+  const projectOptions: ComboboxOption[] = useMemo(
     () =>
-      visits.map((visit) => ({
-        id: visit.id,
-        label: visit.title,
-        value: visit.id,
+      projects.map((project) => ({
+        id: project.id,
+        label: project.name,
+        value: project.id,
       })),
-    [visits]
+    [projects]
   );
 
-  // Filter budgets based on selected visit
-  const filteredBudgets = useMemo(
-    () =>
-      formData.visit_id
-        ? budgets.filter((b) => b.visit_id === formData.visit_id)
-        : budgets,
-    [budgets, formData.visit_id]
-  );
-
-  // Convert budgets to combobox options
   const budgetOptions: ComboboxOption[] = useMemo(
     () =>
-      filteredBudgets.map((budget) => ({
-        id: budget.id,
-        label: budget.title,
-        value: budget.id,
-      })),
-    [filteredBudgets]
+      formData.project_id
+        ? budgets.map((budget) => ({
+            id: budget.id,
+            label: budget.title,
+            value: budget.id,
+          }))
+        : [],
+    [budgets, formData.project_id]
   );
 
   const handleChange = (field: keyof typeof formData) => (
@@ -142,13 +129,13 @@ export function CreateRenderingPage() {
     setError(null);
 
     if (!formData.title.trim()) {
-      setError('Title is required');
+      setError(t('titleRequired'));
       return;
     }
 
     const companyId = getCompanyId();
     if (!companyId) {
-      setError('Company ID not found. Please log in again.');
+      setError(t('common:messages.sessionExpired'));
       return;
     }
 
@@ -158,7 +145,7 @@ export function CreateRenderingPage() {
       const renderingData: RenderingCreate = {
         title: formData.title,
         description: formData.description || undefined,
-        visit_id: formData.visit_id || undefined,
+        project_id: formData.project_id || undefined,
         budget_id: formData.budget_id || undefined,
         expiration_date: formData.expiration_date || undefined,
         notes: formData.notes || undefined,
@@ -167,7 +154,7 @@ export function CreateRenderingPage() {
       await createRendering(renderingData, companyId);
       navigate('/renderings');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create rendering');
+      setError(err instanceof Error ? err.message : t('common:messages.errorLoading'));
     } finally {
       setLoading(false);
     }
@@ -184,7 +171,7 @@ export function CreateRenderingPage() {
 
       <main
         className={cn(
-          'w-full pt-5',
+          'pt-5',
           'transition-all duration-500 ease-out',
           isSidebarOpen ? 'lg:ml-64' : 'lg:ml-0'
         )}
@@ -192,12 +179,12 @@ export function CreateRenderingPage() {
         <div className="p-6 flex flex-col items-center">
           <div className="w-full max-w-xl">
             <div className="mb-6 text-center">
-              <Heading variant="h1">Create Rendering</Heading>
+              <Heading variant="h1">{t('createRendering')}</Heading>
             </div>
 
             {dataLoading ? (
               <div className="text-center py-8 text-[color:var(--foreground-muted)]">
-                Loading...
+                {t('loading')}
               </div>
             ) : (
               <form onSubmit={handleSubmit} className="space-y-6 p-6 border border-[color:var(--border)] rounded-lg bg-[color:var(--card)]">
@@ -214,41 +201,41 @@ export function CreateRenderingPage() {
                   onChange={handleChange('title')}
                   disabled={loading}
                   required
-                  placeholder="Rendering title"
+                  placeholder={t('renderingTitle')}
                 />
 
                 <Combobox
-                  label="Visit"
-                  options={visitOptions}
-                  value={formData.visit_id}
+                  label={t('project')}
+                  options={projectOptions}
+                  value={formData.project_id}
                   onChange={(value) => {
                     setFormData((prev) => ({
                       ...prev,
-                      visit_id: value,
-                      budget_id: prev.visit_id !== value ? '' : prev.budget_id
+                      project_id: value,
+                      budget_id: prev.project_id !== value ? '' : prev.budget_id,
                     }));
                     if (error) setError(null);
                   }}
-                  placeholder="Select a visit..."
+                  placeholder={t('selectProject')}
                   disabled={loading}
-                  emptyMessage="No visits found"
+                  emptyMessage={t('noProjectsFound')}
                 />
 
                 <Combobox
-                  label="Budget"
+                  label={t('budgets:budget')}
                   options={budgetOptions}
                   value={formData.budget_id}
                   onChange={(value) => {
                     setFormData((prev) => ({ ...prev, budget_id: value }));
                     if (error) setError(null);
                   }}
-                  placeholder="Select a budget..."
-                  disabled={loading || budgetOptions.length === 0}
-                  emptyMessage={formData.visit_id ? "No budgets for this visit" : "Select a visit first"}
+                  placeholder={t('selectBudget')}
+                  disabled={loading || !formData.project_id}
+                  emptyMessage={formData.project_id ? t('noBudgetsForVisit') : t('selectProjectFirst')}
                 />
 
                 <div className="space-y-2">
-                  <Label htmlFor="expiration_date">Expiration Date</Label>
+                  <Label htmlFor="expiration_date">{t('expirationDate')}</Label>
                   <input
                     id="expiration_date"
                     type="date"
@@ -260,27 +247,27 @@ export function CreateRenderingPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="description">Description</Label>
+                  <Label htmlFor="description">{t('description')}</Label>
                   <textarea
                     id="description"
                     value={formData.description}
                     onChange={handleChange('description')}
                     disabled={loading}
                     rows={3}
-                    placeholder="Brief description of this rendering..."
+                    placeholder={t('descriptionPlaceholder')}
                     className="w-full px-3 py-2 border border-[color:var(--border)] rounded-lg bg-[color:var(--background)] text-[color:var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[color:var(--primary)] resize-none"
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="notes">Notes</Label>
+                  <Label htmlFor="notes">{t('notes')}</Label>
                   <textarea
                     id="notes"
                     value={formData.notes}
                     onChange={handleChange('notes')}
                     disabled={loading}
                     rows={2}
-                    placeholder="Internal notes..."
+                    placeholder={t('notesPlaceholder')}
                     className="w-full px-3 py-2 border border-[color:var(--border)] rounded-lg bg-[color:var(--background)] text-[color:var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[color:var(--primary)] resize-none"
                   />
                 </div>
@@ -292,7 +279,7 @@ export function CreateRenderingPage() {
                     disabled={loading}
                     className="flex-1"
                   >
-                    {loading ? 'Creating...' : 'Create Rendering'}
+                    {loading ? t('creating') : t('createRendering')}
                   </Button>
                   <Button
                     type="button"
@@ -301,7 +288,7 @@ export function CreateRenderingPage() {
                     disabled={loading}
                     className="flex-1"
                   >
-                    Cancel
+                    {t('common:actions.cancel')}
                   </Button>
                 </div>
               </form>

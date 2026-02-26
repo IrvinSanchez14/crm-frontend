@@ -23,6 +23,7 @@ import {
   type VisitStatus,
 } from '../../../infrastructure/api/api.client';
 import { decodeJwt } from '../../../core/utils/jwt.utils';
+import { useTranslation } from 'react-i18next';
 
 type Tab = 'details' | 'notes' | 'attachments';
 
@@ -30,6 +31,7 @@ export function VisitDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user, logout } = useAuth();
+  const { t } = useTranslation('visits');
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [visit, setVisit] = useState<VisitDetail | null>(null);
@@ -56,7 +58,7 @@ export function VisitDetailPage() {
 
     const companyId = getCompanyId();
     if (!companyId) {
-      setError('Company ID not found. Please log in again.');
+      setError(t('common:messages.sessionExpired'));
       setLoading(false);
       return;
     }
@@ -78,7 +80,7 @@ export function VisitDetailPage() {
       const projectData = projects.find(p => p.id === visitData.project_id);
       setProject(projectData || null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load visit');
+      setError(err instanceof Error ? err.message : t('errorLoading'));
     } finally {
       setLoading(false);
     }
@@ -93,7 +95,7 @@ export function VisitDetailPage() {
 
     const companyId = getCompanyId();
     if (!companyId) {
-      setError('Company ID not found. Please log in again.');
+      setError(t('common:messages.sessionExpired'));
       return;
     }
 
@@ -104,7 +106,7 @@ export function VisitDetailPage() {
       setNotesSaved(true);
       setTimeout(() => setNotesSaved(false), 2000);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to save notes');
+      setError(err instanceof Error ? err.message : t('common:messages.errorLoading'));
     } finally {
       setSavingNotes(false);
     }
@@ -119,9 +121,9 @@ export function VisitDetailPage() {
   };
 
   const tabs: { key: Tab; label: string }[] = [
-    { key: 'details', label: 'Details' },
-    { key: 'notes', label: 'Notes' },
-    { key: 'attachments', label: 'Attachments' },
+    { key: 'details', label: t('details') },
+    { key: 'notes', label: t('notes') },
+    { key: 'attachments', label: t('attachments') },
   ];
 
   if (loading) {
@@ -135,13 +137,13 @@ export function VisitDetailPage() {
         <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
         <main
           className={cn(
-            'w-full pt-5',
+            'pt-5',
             'transition-all duration-500 ease-out',
             isSidebarOpen ? 'lg:ml-64' : 'lg:ml-0'
           )}
         >
           <div className="p-6 flex items-center justify-center">
-            <Text variant="muted">Loading visit...</Text>
+            <Text variant="muted">{t('loadingVisit')}</Text>
           </div>
         </main>
       </div>
@@ -159,7 +161,7 @@ export function VisitDetailPage() {
         <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
         <main
           className={cn(
-            'w-full pt-5',
+            'pt-5',
             'transition-all duration-500 ease-out',
             isSidebarOpen ? 'lg:ml-64' : 'lg:ml-0'
           )}
@@ -169,7 +171,7 @@ export function VisitDetailPage() {
               {error}
             </div>
             <Button variant="secondary" onClick={() => navigate('/visits')}>
-              Back to Visits
+              {t('backToVisits')}
             </Button>
           </div>
         </main>
@@ -188,7 +190,7 @@ export function VisitDetailPage() {
 
       <main
         className={cn(
-          'w-full pt-5',
+          'pt-5',
           'transition-all duration-500 ease-out',
           isSidebarOpen ? 'lg:ml-64' : 'lg:ml-0'
         )}
@@ -220,7 +222,7 @@ export function VisitDetailPage() {
               <Heading variant="h1">{visit?.title}</Heading>
               {project && (
                 <Text variant="muted" size="sm">
-                  Project: {project.name}
+                  {t('project')}: {project.name}
                 </Text>
               )}
             </div>
@@ -255,7 +257,7 @@ export function VisitDetailPage() {
           {/* Tab Content */}
           {activeTab === 'details' && (
             <div className="bg-[color:var(--card)] rounded-lg border border-[color:var(--border)] p-6">
-              <Heading variant="h3" className="mb-4">Visit Information</Heading>
+              <Heading variant="h3" className="mb-4">{t('visitInformation')}</Heading>
               <div className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   <div>
@@ -266,11 +268,11 @@ export function VisitDetailPage() {
                         statusColors[visit?.status || 'planning']
                       )}
                     >
-                      {visit?.status.replace('_', ' ').toUpperCase()}
+                      {t(`status.${visit?.status}`)}
                     </span>
                   </div>
                   <div>
-                    <Text variant="muted" className="text-xs mb-1">Visit Date</Text>
+                    <Text variant="muted" className="text-xs mb-1">{t('visitDate')}</Text>
                     <Text variant="default">
                       {visit?.visit_date
                         ? new Date(visit.visit_date).toLocaleDateString()
@@ -278,7 +280,15 @@ export function VisitDetailPage() {
                     </Text>
                   </div>
                   <div>
-                    <Text variant="muted" className="text-xs mb-1">Created</Text>
+                    <Text variant="muted" className="text-xs mb-1">{t('visitTime')}</Text>
+                    <Text variant="default">
+                      {visit?.visit_time
+                        ? visit.visit_time.slice(0, 5)
+                        : '\u2014'}
+                    </Text>
+                  </div>
+                  <div>
+                    <Text variant="muted" className="text-xs mb-1">{t('common:table.created')}</Text>
                     <Text variant="default">
                       {visit?.created_at
                         ? new Date(visit.created_at).toLocaleDateString()
@@ -289,7 +299,7 @@ export function VisitDetailPage() {
 
                 {visit?.description && (
                   <div>
-                    <Text variant="muted" className="text-xs mb-1">Description</Text>
+                    <Text variant="muted" className="text-xs mb-1">{t('description')}</Text>
                     <Text variant="default">{visit.description}</Text>
                   </div>
                 )}
@@ -297,11 +307,11 @@ export function VisitDetailPage() {
                 {/* Cost Estimates Display */}
                 {(visit?.estimated_materials_cost || visit?.estimated_labor_cost || visit?.estimated_total_cost) && (
                   <div className="border-t border-[color:var(--border)] pt-4 mt-4">
-                    <Text variant="muted" className="text-xs mb-2">Cost Estimates</Text>
+                    <Text variant="muted" className="text-xs mb-2">{t('costEstimates')}</Text>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       {visit?.estimated_materials_cost && (
                         <div>
-                          <Text variant="muted" className="text-xs">Materials</Text>
+                          <Text variant="muted" className="text-xs">{t('materials')}</Text>
                           <Text variant="default" className="font-medium">
                             ${parseFloat(visit.estimated_materials_cost).toFixed(2)}
                           </Text>
@@ -309,7 +319,7 @@ export function VisitDetailPage() {
                       )}
                       {visit?.estimated_labor_cost && (
                         <div>
-                          <Text variant="muted" className="text-xs">Labor</Text>
+                          <Text variant="muted" className="text-xs">{t('labor')}</Text>
                           <Text variant="default" className="font-medium">
                             ${parseFloat(visit.estimated_labor_cost).toFixed(2)}
                           </Text>
@@ -317,7 +327,7 @@ export function VisitDetailPage() {
                       )}
                       {visit?.estimated_total_cost && (
                         <div>
-                          <Text variant="muted" className="text-xs">Total</Text>
+                          <Text variant="muted" className="text-xs">{t('total')}</Text>
                           <Text variant="default" className="font-medium">
                             ${parseFloat(visit.estimated_total_cost).toFixed(2)}
                           </Text>
@@ -333,11 +343,11 @@ export function VisitDetailPage() {
           {activeTab === 'notes' && (
             <div className="bg-[color:var(--card)] rounded-lg border border-[color:var(--border)] p-6">
               <div className="flex items-center justify-between mb-4">
-                <Heading variant="h3">Inspection Notes</Heading>
+                <Heading variant="h3">{t('inspectionNotes')}</Heading>
                 <div className="flex items-center gap-3">
                   {notesSaved && (
                     <Text size="sm" className="text-green-600 dark:text-green-400">
-                      Saved
+                      {t('saved')}
                     </Text>
                   )}
                   <Button
@@ -346,14 +356,14 @@ export function VisitDetailPage() {
                     onClick={handleSaveNotes}
                     disabled={savingNotes}
                   >
-                    {savingNotes ? 'Saving...' : 'Save Notes'}
+                    {savingNotes ? t('savingNotes') : t('saveNotes')}
                   </Button>
                 </div>
               </div>
               <RichTextEditor
                 value={notesValue}
                 onChange={setNotesValue}
-                placeholder="Add inspection notes, observations, and findings..."
+                placeholder={t('notesPlaceholder')}
                 disabled={savingNotes}
               />
             </div>

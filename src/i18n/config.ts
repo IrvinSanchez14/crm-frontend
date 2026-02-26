@@ -18,6 +18,20 @@ import clientsEn from './locales/en/clients.json';
 import clientsEs from './locales/es/clients.json';
 import projectsEn from './locales/en/projects.json';
 import projectsEs from './locales/es/projects.json';
+import dashboardEn from './locales/en/dashboard.json';
+import dashboardEs from './locales/es/dashboard.json';
+import visitsEn from './locales/en/visits.json';
+import visitsEs from './locales/es/visits.json';
+import budgetsEn from './locales/en/budgets.json';
+import budgetsEs from './locales/es/budgets.json';
+import renderingsEn from './locales/en/renderings.json';
+import renderingsEs from './locales/es/renderings.json';
+import reportsEn from './locales/en/reports.json';
+import reportsEs from './locales/es/reports.json';
+import categoriesEn from './locales/en/categories.json';
+import categoriesEs from './locales/es/categories.json';
+import setupEn from './locales/en/setup.json';
+import setupEs from './locales/es/setup.json';
 
 // Supported languages
 export const SUPPORTED_LANGUAGES = ['en', 'es'] as const;
@@ -39,12 +53,26 @@ const resources = {
     auth: authEn,
     clients: clientsEn,
     projects: projectsEn,
+    dashboard: dashboardEn,
+    visits: visitsEn,
+    budgets: budgetsEn,
+    renderings: renderingsEn,
+    reports: reportsEn,
+    categories: categoriesEn,
+    setup: setupEn,
   },
   es: {
     common: commonEs,
     auth: authEs,
     clients: clientsEs,
     projects: projectsEs,
+    dashboard: dashboardEs,
+    visits: visitsEs,
+    budgets: budgetsEs,
+    renderings: renderingsEs,
+    reports: reportsEs,
+    categories: categoriesEs,
+    setup: setupEs,
   },
 } as const;
 
@@ -60,7 +88,7 @@ i18n
     defaultNS: 'common',
     fallbackLng: DEFAULT_LANGUAGE,
     supportedLngs: SUPPORTED_LANGUAGES,
-    
+
     // Language detection configuration
     detection: {
       order: ['localStorage', 'navigator'],
@@ -70,14 +98,14 @@ i18n
 
     // Performance optimization
     load: 'languageOnly', // Load only 'en', not 'en-US'
-    
+
     interpolation: {
       escapeValue: false, // React already escapes values
     },
 
     // Development options
     debug: import.meta.env.DEV,
-    
+
     react: {
       useSuspense: false, // Disable to allow real-time language switching
       bindI18n: 'languageChanged', // Re-render when language changes

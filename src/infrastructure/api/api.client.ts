@@ -13,6 +13,41 @@ export interface LoginRequest {
   password: string;
 }
 
+export interface SetupLinkRequest {
+  email: string;
+}
+
+export interface SetupLinkResponse {
+  message: string;
+}
+
+export interface SetupTokenVerifyResponse {
+  valid: boolean;
+  email: string | null;
+}
+
+export interface CompanySetupRequest {
+  setup_token: string;
+  company_name: string;
+  company_email: string;
+  company_phone?: string;
+  company_address?: string;
+  admin_email: string;
+  admin_username: string;
+  admin_password: string;
+  admin_first_name: string;
+  admin_last_name: string;
+  admin_phone?: string;
+}
+
+export interface CompanySetupResponse {
+  company_id: string;
+  company_name: string;
+  admin_user_id: string;
+  admin_email: string;
+  message: string;
+}
+
 export interface RefreshTokenRequest {
   refresh_token: string;
 }
@@ -532,6 +567,8 @@ export interface ProjectsListParams {
   status?: ProjectStatus;
   category_id?: string;
   client_id?: string;
+  date_from?: string;
+  date_to?: string;
   include_details?: boolean;
   include_creator?: boolean;
 }
@@ -627,7 +664,9 @@ export async function getProjects(
   if (status) queryParams.append('status', status);
   if (category_id) queryParams.append('category_id', category_id);
   if (client_id) queryParams.append('client_id', client_id);
-  
+  if (params.date_from) queryParams.append('date_from', params.date_from);
+  if (params.date_to) queryParams.append('date_to', params.date_to);
+
   const response = await apiClient.getPublic<ProjectDetail[]>(
     `/projects?${queryParams.toString()}`
   );
@@ -893,6 +932,7 @@ export interface Visit {
   description: string | null;
   status: VisitStatus;
   visit_date: string | null;
+  visit_time: string | null;
   inspection_notes: string | null;
   estimated_materials_cost: string | null;
   estimated_labor_cost: string | null;
@@ -925,6 +965,7 @@ export interface VisitCreate {
   description?: string;
   status?: VisitStatus;
   visit_date?: string;
+  visit_time?: string;
   inspection_notes?: string;
   estimated_materials_cost?: string;
   estimated_labor_cost?: string;
@@ -941,6 +982,7 @@ export interface VisitUpdate {
   description?: string;
   status?: VisitStatus;
   visit_date?: string;
+  visit_time?: string;
   inspection_notes?: string;
   estimated_materials_cost?: string;
   estimated_labor_cost?: string;
@@ -955,6 +997,8 @@ export interface VisitsListParams {
   company_id: string;
   project_id?: string;
   status?: VisitStatus;
+  date_from?: string;
+  date_to?: string;
   skip?: number;
   limit?: number;
   include_details?: boolean;
@@ -1125,23 +1169,31 @@ export async function getVisits(
     company_id,
     project_id,
     status,
+    date_from,
+    date_to,
     skip = 0,
     limit = 100,
     include_details = true,
   } = params;
-  
+
   const queryParams = new URLSearchParams({
     company_id,
     skip: skip.toString(),
     limit: limit.toString(),
     include_details: include_details.toString(),
   });
-  
+
   if (project_id) {
     queryParams.append('project_id', project_id);
   }
   if (status) {
     queryParams.append('status', status);
+  }
+  if (date_from) {
+    queryParams.append('date_from', date_from);
+  }
+  if (date_to) {
+    queryParams.append('date_to', date_to);
   }
   
   const response = await apiClient.getPublic<VisitDetail[]>(
@@ -1223,6 +1275,8 @@ export interface BudgetsListParams {
   company_id: string;
   visit_id?: string;
   status?: BudgetStatus;
+  date_from?: string;
+  date_to?: string;
   skip?: number;
   limit?: number;
 }
@@ -1234,23 +1288,31 @@ export async function getBudgets(
     company_id,
     visit_id,
     status,
+    date_from,
+    date_to,
     skip = 0,
     limit = 100,
   } = params;
-  
+
   const queryParams = new URLSearchParams({
     company_id,
     skip: skip.toString(),
     limit: limit.toString(),
   });
-  
+
   if (visit_id) {
     queryParams.append('visit_id', visit_id);
   }
   if (status) {
     queryParams.append('status', status);
   }
-  
+  if (date_from) {
+    queryParams.append('date_from', date_from);
+  }
+  if (date_to) {
+    queryParams.append('date_to', date_to);
+  }
+
   const response = await apiClient.getPublic<BudgetDetail[]>(
     `/budgets/?${queryParams.toString()}`
   );
@@ -1355,6 +1417,18 @@ export async function updateBudgetCategory(
     categoryData
   );
   return response.data;
+}
+
+export async function reorderBudgetCategories(
+  budgetId: string,
+  categoryIds: string[],
+  company_id: string
+): Promise<void> {
+  const queryParams = new URLSearchParams({ company_id });
+  await apiClient.putPublic(
+    `/budgets/${budgetId}/categories/reorder?${queryParams.toString()}`,
+    categoryIds
+  );
 }
 
 export async function deleteBudgetCategory(
@@ -1513,12 +1587,14 @@ export interface Rendering {
   title: string;
   description: string | null;
   status: RenderingStatus;
+  project_id: string | null;
   visit_id: string | null;
   budget_id: string | null;
   company_id: string;
   created_by_user_id: string | null;
   expiration_date: string | null;
   notes: string | null;
+  total_amount: string;
   created_at: string;
   updated_at: string;
 }
@@ -1588,6 +1664,7 @@ export interface RenderingItemUpdate {
 export interface RenderingCreate {
   title: string;
   description?: string;
+  project_id?: string;
   visit_id?: string;
   budget_id?: string;
   expiration_date?: string;
@@ -1609,6 +1686,8 @@ export interface RenderingsListParams {
   visit_id?: string;
   budget_id?: string;
   status?: RenderingStatus;
+  date_from?: string;
+  date_to?: string;
   skip?: number;
   limit?: number;
 }
@@ -1624,6 +1703,8 @@ export async function getRenderings(
     visit_id,
     budget_id,
     status,
+    date_from,
+    date_to,
     skip = 0,
     limit = 100,
   } = params;
@@ -1642,6 +1723,12 @@ export async function getRenderings(
   }
   if (status) {
     queryParams.append('status', status);
+  }
+  if (date_from) {
+    queryParams.append('date_from', date_from);
+  }
+  if (date_to) {
+    queryParams.append('date_to', date_to);
   }
 
   const response = await apiClient.getPublic<RenderingDetail[]>(
@@ -1971,4 +2058,30 @@ export async function uploadImage(
   }
 
   return response.json();
+}
+
+/**
+ * Setup API methods
+ */
+export async function requestSetupLink(data: SetupLinkRequest): Promise<SetupLinkResponse> {
+  const response = await apiClient.postPublic<SetupLinkResponse, SetupLinkRequest>(
+    '/auth/setup/request-link',
+    data
+  );
+  return response.data;
+}
+
+export async function verifySetupToken(token: string): Promise<SetupTokenVerifyResponse> {
+  const response = await apiClient.getPublic<SetupTokenVerifyResponse>(
+    `/auth/setup/verify?token=${encodeURIComponent(token)}`
+  );
+  return response.data;
+}
+
+export async function setupCompany(data: CompanySetupRequest): Promise<CompanySetupResponse> {
+  const response = await apiClient.postPublic<CompanySetupResponse, CompanySetupRequest>(
+    '/auth/setup',
+    data
+  );
+  return response.data;
 }

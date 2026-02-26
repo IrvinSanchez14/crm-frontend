@@ -1,0 +1,10 @@
+{
+  "title": "Categorías de Proyectos",
+  "createCategory": "Crear Categoría",
+  "editCategory": "Editar Categoría",
+  "name": "Nombre",
+  "description": "Descripción",
+  "inactive": "Inactivo",
+  "noCategoriesFound": "No se encontraron categorías",
+  "loading": "Cargando categorías..."
+}

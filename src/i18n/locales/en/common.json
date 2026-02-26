@@ -74,6 +74,8 @@
     "timePlaceholder": "Select time",
     "uploadFile": "Upload file",
     "dropFile": "Drop file here or click to upload",
-    "allClients": "All Clients"
+    "allClients": "All Clients",
+    "dateFrom": "From",
+    "dateTo": "To"
   }
 }

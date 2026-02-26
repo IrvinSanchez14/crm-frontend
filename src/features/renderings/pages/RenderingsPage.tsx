@@ -5,6 +5,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Header } from '../../../shared/components/organisms/Header';
 import { Sidebar } from '../../../shared/components/organisms/Sidebar';
 import { Table, type TableColumn } from '../../../shared/components/organisms/Table';
@@ -15,21 +16,25 @@ import { Button } from '../../../shared/components/atoms/Button';
 import { cn } from '../../../core/utils/cn';
 import {
   getRenderings,
-  getVisits,
+  getProjects,
   type RenderingDetail,
-  type VisitDetail,
+  type ProjectDetail,
   type RenderingStatus
 } from '../../../infrastructure/api/api.client';
 import { decodeJwt } from '../../../core/utils/jwt.utils';
+import { DateRangeFilter } from '../../../shared/components/molecules/DateRangeFilter/DateRangeFilter';
 
 export function RenderingsPage() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const { t } = useTranslation('renderings');
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [renderings, setRenderings] = useState<RenderingDetail[]>([]);
-  const [visits, setVisits] = useState<VisitDetail[]>([]);
+  const [projects, setProjects] = useState<ProjectDetail[]>([]);
   const [selectedStatus, setSelectedStatus] = useState<RenderingStatus | ''>('');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -40,21 +45,21 @@ export function RenderingsPage() {
     return payload?.company_id || null;
   }, [user]);
 
-  // Fetch visits for dropdown
-  const fetchVisits = useCallback(async () => {
+  // Fetch projects for table display
+  const fetchProjects = useCallback(async () => {
     const companyId = getCompanyId();
     if (!companyId) return;
 
     try {
-      const data = await getVisits({
+      const data = await getProjects({
         company_id: companyId,
         skip: 0,
         limit: 1000,
         include_details: true,
       });
-      setVisits(data);
+      setProjects(data);
     } catch (err) {
-      console.error('Failed to load visits:', err);
+      console.error('Failed to load projects:', err);
     }
   }, [getCompanyId]);
 
@@ -79,6 +84,12 @@ export function RenderingsPage() {
       if (selectedStatus) {
         params.status = selectedStatus;
       }
+      if (dateFrom) {
+        params.date_from = dateFrom;
+      }
+      if (dateTo) {
+        params.date_to = dateTo;
+      }
 
       const data = await getRenderings(params);
       setRenderings(data);
@@ -87,12 +98,12 @@ export function RenderingsPage() {
     } finally {
       setLoading(false);
     }
-  }, [getCompanyId, selectedStatus]);
+  }, [getCompanyId, selectedStatus, dateFrom, dateTo]);
 
   // Fetch data on mount
   useEffect(() => {
-    fetchVisits();
-  }, [fetchVisits]);
+    fetchProjects();
+  }, [fetchProjects]);
 
   // Fetch renderings when filters change
   useEffect(() => {
@@ -113,14 +124,14 @@ export function RenderingsPage() {
         ),
       },
       {
-        key: 'visit',
-        label: 'Visit',
+        key: 'project',
+        label: t('project'),
         span: 3,
         render: (rendering) => {
-          const visit = visits.find((v) => v.id === rendering.visit_id);
+          const project = projects.find((p) => p.id === rendering.project_id);
           return (
             <Text variant="muted" size="sm">
-              {visit?.title || '—'}
+              {project?.name || '—'}
             </Text>
           );
         },
@@ -161,7 +172,7 @@ export function RenderingsPage() {
         ),
       },
     ],
-    [visits]
+    [projects, t]
   );
 
   // Navigate to rendering detail page on row click
@@ -184,37 +195,43 @@ export function RenderingsPage() {
 
       <main
         className={cn(
-          'w-full pt-5',
+          'pt-5',
           'transition-all duration-500 ease-out',
           isSidebarOpen ? 'lg:ml-64' : 'lg:ml-0'
         )}
       >
         <div className="p-6">
           <div className="flex items-center justify-between mb-6">
-            <Heading variant="h1">Renderings</Heading>
+            <Heading variant="h1">{t('title')}</Heading>
             <Button onClick={handleCreateClick} variant="primary">
-              Create Rendering
+              {t('createRendering')}
             </Button>
           </div>
 
           {/* Filters */}
           <div className="mb-6 flex gap-4 items-end">
-            <div className="flex-1 max-w-xs">
+            <div className="flex-1">
               <label className="block text-sm font-medium mb-2 text-[color:var(--foreground)]">
-                Filter by Status
+                {t('filterByStatus')}
               </label>
               <select
                 value={selectedStatus}
                 onChange={(e) => setSelectedStatus(e.target.value as RenderingStatus | '')}
                 className="w-full px-3 py-2 border border-[color:var(--border)] rounded-lg bg-[color:var(--background)] text-[color:var(--foreground)]"
               >
-                <option value="">All Statuses</option>
-                <option value="draft">Draft</option>
-                <option value="sent">Sent</option>
-                <option value="approved">Approved</option>
-                <option value="rejected">Rejected</option>
+                <option value="">{t('allStatuses')}</option>
+                <option value="draft">{t('status.draft')}</option>
+                <option value="sent">{t('status.sent')}</option>
+                <option value="approved">{t('status.approved')}</option>
+                <option value="rejected">{t('status.rejected')}</option>
               </select>
             </div>
+            <DateRangeFilter
+              dateFrom={dateFrom}
+              dateTo={dateTo}
+              onDateFromChange={setDateFrom}
+              onDateToChange={setDateTo}
+            />
           </div>
 
           {error && (
@@ -229,7 +246,7 @@ export function RenderingsPage() {
             getRowId={(rendering) => rendering.id}
             loading={loading}
             error={error}
-            emptyMessage="No renderings found"
+            emptyMessage={t('noRenderingsFound')}
             onRowClick={handleRowClick}
             selectable={false}
           />

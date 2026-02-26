@@ -15,6 +15,8 @@ import {
 } from '../../../infrastructure/api/api.client';
 import { decodeJwt } from '../../../core/utils/jwt.utils';
 import { useAuth } from '../../../shared/hooks/useAuth';
+import { formatCurrencyDisplay } from '../../../core/utils/currency.utils';
+import { calcLineSubtotal, calcSellingPrice, calcProfit } from '../../../core/utils/pricing.utils';
 
 export interface AddBudgetItemFormProps {
   budgetId: string;
@@ -117,10 +119,9 @@ export function AddBudgetItemForm({ budgetId, categoryId, onSuccess, onCancel }:
     try {
       setLoading(true);
       
-      // Calculate subtotal
       const quantity = parseFloat(formData.quantity);
       const unitPrice = parseFloat(formData.unit_price);
-      const subtotal = quantity * unitPrice;
+      const subtotal = calcLineSubtotal(quantity, unitPrice);
 
       const itemData: BudgetItemCreate = {
         ...formData,
@@ -233,7 +234,7 @@ export function AddBudgetItemForm({ budgetId, categoryId, onSuccess, onCancel }:
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="unit_price">Unit Price *</Label>
+          <Label htmlFor="unit_price">Real Price *</Label>
           <div className="relative">
             <span className="absolute left-3 top-2.5 text-[color:var(--foreground)]">$</span>
             <input
@@ -251,13 +252,17 @@ export function AddBudgetItemForm({ budgetId, categoryId, onSuccess, onCancel }:
         </div>
       </div>
 
-      {formData.quantity && formData.unit_price && (
-        <div className="p-2 bg-[color:var(--muted)] rounded">
-          <Text variant="muted" className="text-sm">
-            Subtotal: ${(parseFloat(formData.quantity) * parseFloat(formData.unit_price)).toFixed(2)}
-          </Text>
-        </div>
-      )}
+      {formData.quantity && formData.unit_price && (() => {
+        const price = parseFloat(formData.unit_price);
+        const qty = parseFloat(formData.quantity);
+        return (
+          <div className="p-2 bg-[color:var(--muted)] rounded flex gap-4 text-sm">
+            <Text variant="muted">Price + Profit: {formatCurrencyDisplay(calcSellingPrice(price))}</Text>
+            <Text variant="muted">Profit: {formatCurrencyDisplay(calcProfit(price))}</Text>
+            <Text variant="muted" className="font-semibold">Subtotal: {formatCurrencyDisplay(calcLineSubtotal(qty, price))}</Text>
+          </div>
+        );
+      })()}
 
       <div className="flex gap-3">
         <Button

@@ -42,7 +42,7 @@ export const FormField = forwardRef<HTMLInputElement, FormFieldProps>(
           {label}
         </Label>
         {mask ? (
-          <MaskedInput mask={mask} {...sharedProps} />
+          <MaskedInput mask={mask} {...sharedProps} value={sharedProps.value != null ? String(sharedProps.value) : undefined} />
         ) : (
           <Input {...sharedProps} />
         )}

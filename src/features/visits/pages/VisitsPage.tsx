@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Header } from '../../../shared/components/organisms/Header';
 import { Sidebar } from '../../../shared/components/organisms/Sidebar';
 import { RightSidebar } from '../../../shared/components/organisms/RightSidebar';
@@ -18,11 +19,13 @@ import {
 } from '../../../infrastructure/api/api.client';
 import { decodeJwt } from '../../../core/utils/jwt.utils';
 import { CreateVisitForm, CreateVisitFormFooter } from '../components/CreateVisitForm';
+import { DateRangeFilter } from '../../../shared/components/molecules/DateRangeFilter/DateRangeFilter';
 
 export function VisitsPage() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const { t } = useTranslation('visits');
   const projectIdFromUrl = searchParams.get('project_id');
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -31,6 +34,8 @@ export function VisitsPage() {
   const [projects, setProjects] = useState<ProjectDetail[]>([]);
   const [selectedProjectId, setSelectedProjectId] = useState<string>(projectIdFromUrl || '');
   const [selectedStatus, setSelectedStatus] = useState<VisitStatus | ''>('');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [formLoading, setFormLoading] = useState(false);
@@ -91,6 +96,12 @@ export function VisitsPage() {
       if (selectedStatus) {
         params.status = selectedStatus;
       }
+      if (dateFrom) {
+        params.date_from = dateFrom;
+      }
+      if (dateTo) {
+        params.date_to = dateTo;
+      }
 
       const data = await getVisits(params);
       setVisits(data);
@@ -99,7 +110,7 @@ export function VisitsPage() {
     } finally {
       setLoading(false);
     }
-  }, [getCompanyId, selectedProjectId, selectedStatus]);
+  }, [getCompanyId, selectedProjectId, selectedStatus, dateFrom, dateTo]);
 
   // Fetch projects and visits in parallel on mount
   useEffect(() => {
@@ -114,7 +125,7 @@ export function VisitsPage() {
     () => [
       {
         key: 'title',
-        label: 'Title',
+        label: t('titleColumn'),
         span: 4,
         render: (visit) => (
           <Text variant="default" className="font-medium">
@@ -124,20 +135,20 @@ export function VisitsPage() {
       },
       {
         key: 'project',
-        label: 'Project',
+        label: t('project'),
         span: 3,
         render: (visit) => {
           const project = projects.find((p) => p.id === visit.project_id);
           return (
             <Text variant="muted" size="sm">
-              {project?.name || 'Unknown Project'}
+              {project?.name || t('unknownProject')}
             </Text>
           );
         },
       },
       {
         key: 'status',
-        label: 'Status',
+        label: t('statusLabel'),
         span: 2,
         render: (visit) => {
           const statusColors: Record<VisitStatus, string> = {
@@ -154,23 +165,33 @@ export function VisitsPage() {
                 statusColors[visit.status]
               )}
             >
-              {visit.status.replace('_', ' ').toUpperCase()}
+              {t(`status.${visit.status}`)}
             </span>
           );
         },
       },
       {
         key: 'visit_date',
-        label: 'Visit Date',
+        label: t('visitDate'),
         span: 3,
-        render: (visit) => (
-          <Text variant="muted" size="sm">
-            {visit.visit_date ? new Date(visit.visit_date).toLocaleDateString() : '—'}
-          </Text>
-        ),
+        render: (visit) => {
+          const dateStr = visit.visit_date
+            ? new Date(visit.visit_date).toLocaleDateString()
+            : null;
+          const timeStr = visit.visit_time
+            ? visit.visit_time.slice(0, 5)
+            : null;
+          return (
+            <Text variant="muted" size="sm">
+              {dateStr && timeStr
+                ? `${dateStr} ${timeStr}`
+                : dateStr || timeStr || '—'}
+            </Text>
+          );
+        },
       },
     ],
-    [projects]
+    [projects, t]
   );
 
   // Navigate to visit detail page on row click
@@ -202,16 +223,16 @@ export function VisitsPage() {
 
       <main
         className={cn(
-          'w-full pt-5',
+          'pt-5',
           'transition-all duration-500 ease-out',
           isSidebarOpen ? 'lg:ml-64' : 'lg:ml-0'
         )}
       >
         <div className="p-6">
           <div className="flex items-center justify-between mb-6">
-            <Heading variant="h1">Visits</Heading>
+            <Heading variant="h1">{t('title')}</Heading>
             <Button onClick={handleCreateClick} variant="primary">
-              Create Visit
+              {t('createVisit')}
             </Button>
           </div>
 
@@ -219,14 +240,14 @@ export function VisitsPage() {
           <div className="mb-6 flex gap-4 items-end">
             <div className="flex-1">
               <label className="block text-sm font-medium mb-2 text-[color:var(--foreground)]">
-                Filter by Project
+                {t('filterByProject')}
               </label>
               <select
                 value={selectedProjectId}
                 onChange={(e) => setSelectedProjectId(e.target.value)}
                 className="w-full px-3 py-2 border border-[color:var(--border)] rounded-lg bg-[color:var(--background)] text-[color:var(--foreground)]"
               >
-                <option value="">All Projects</option>
+                <option value="">{t('allProjects')}</option>
                 {projects.map((project) => (
                   <option key={project.id} value={project.id}>
                     {project.name}
@@ -236,21 +257,27 @@ export function VisitsPage() {
             </div>
             <div className="flex-1">
               <label className="block text-sm font-medium mb-2 text-[color:var(--foreground)]">
-                Filter by Status
+                {t('filterByStatus')}
               </label>
               <select
                 value={selectedStatus}
                 onChange={(e) => setSelectedStatus(e.target.value as VisitStatus | '')}
                 className="w-full px-3 py-2 border border-[color:var(--border)] rounded-lg bg-[color:var(--background)] text-[color:var(--foreground)]"
               >
-                <option value="">All Statuses</option>
-                <option value="planning">Planning</option>
-                <option value="in_review">In Review</option>
-                <option value="approved">Approved</option>
-                <option value="inspection_required">Inspection Required</option>
-                <option value="visited">Visited</option>
+                <option value="">{t('allStatuses')}</option>
+                <option value="planning">{t('status.planning')}</option>
+                <option value="in_review">{t('status.in_review')}</option>
+                <option value="approved">{t('status.approved')}</option>
+                <option value="inspection_required">{t('status.inspection_required')}</option>
+                <option value="visited">{t('status.visited')}</option>
               </select>
             </div>
+            <DateRangeFilter
+              dateFrom={dateFrom}
+              dateTo={dateTo}
+              onDateFromChange={setDateFrom}
+              onDateToChange={setDateTo}
+            />
           </div>
 
           {error && (
@@ -265,7 +292,7 @@ export function VisitsPage() {
             getRowId={(visit) => visit.id}
             loading={loading}
             error={error}
-            emptyMessage="No visits found"
+            emptyMessage={t('noVisitsFound')}
             onRowClick={handleRowClick}
             selectable={false}
           />
@@ -275,7 +302,7 @@ export function VisitsPage() {
       <RightSidebar
         isOpen={isRightSidebarOpen}
         onClose={handleCancel}
-        title="Create Visit"
+        title={t('createVisit')}
         footer={
           <CreateVisitFormFooter
             loading={formLoading}
