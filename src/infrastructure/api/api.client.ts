@@ -379,7 +379,7 @@ export async function getClients(params: ClientsListParams): Promise<Client[]> {
     include_projects: include_projects.toString(),
   });
   
-  const response = await apiClient.getPublic<Client[]>(`/clients?${queryParams.toString()}`);
+  const response = await apiClient.getPublic<Client[]>(`/clients/?${queryParams.toString()}`);
   return response.data;
 }
 
@@ -668,7 +668,7 @@ export async function getProjects(
   if (params.date_to) queryParams.append('date_to', params.date_to);
 
   const response = await apiClient.getPublic<ProjectDetail[]>(
-    `/projects?${queryParams.toString()}`
+    `/projects/?${queryParams.toString()}`
   );
   return response.data;
 }
@@ -1197,7 +1197,7 @@ export async function getVisits(
   }
   
   const response = await apiClient.getPublic<VisitDetail[]>(
-    `/visits?${queryParams.toString()}`
+    `/visits/?${queryParams.toString()}`
   );
   return response.data;
 }
@@ -1732,7 +1732,7 @@ export async function getRenderings(
   }
 
   const response = await apiClient.getPublic<RenderingDetail[]>(
-    `/renderings?${queryParams.toString()}`
+    `/renderings/?${queryParams.toString()}`
   );
   return response.data;
 }
