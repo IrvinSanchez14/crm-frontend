@@ -521,7 +521,7 @@ export async function getCatalogItems(
   }
   
   const response = await apiClient.getPublic<CatalogItem[]>(
-    `/catalog-items?${queryParams.toString()}`
+    `/catalog-items/?${queryParams.toString()}`
   );
   return response.data;
 }
@@ -609,7 +609,7 @@ export async function getProjectCategories(
   });
   
   const response = await apiClient.getPublic<ProjectCategory[]>(
-    `/project-categories?${queryParams.toString()}`
+    `/project-categories/?${queryParams.toString()}`
   );
   return response.data;
 }
@@ -629,9 +629,10 @@ export async function updateProjectCategory(
   categoryData: ProjectCategoryUpdate,
   companyId: string
 ): Promise<ProjectCategory> {
-  const response = await apiClient.putPublic<ProjectCategory, ProjectCategoryUpdate & { company_id: string }>(
-    `/project-categories/${categoryId}`,
-    { ...categoryData, company_id: companyId }
+  const queryParams = new URLSearchParams({ company_id: companyId });
+  const response = await apiClient.putPublic<ProjectCategory, ProjectCategoryUpdate>(
+    `/project-categories/${categoryId}?${queryParams.toString()}`,
+    categoryData
   );
   return response.data;
 }
@@ -1753,11 +1754,19 @@ export async function getRenderingByVisit(
   company_id: string
 ): Promise<RenderingDetail | null> {
   try {
-    const queryParams = new URLSearchParams({ company_id });
-    const response = await apiClient.getPublic<RenderingDetail>(
-      `/renderings/visit/${visitId}?${queryParams.toString()}`
+    const queryParams = new URLSearchParams({
+      company_id,
+      visit_id: visitId,
+      limit: '1',
+    });
+    const response = await apiClient.getPublic<RenderingDetail[]>(
+      `/renderings/?${queryParams.toString()}`
     );
-    return response.data;
+    const renderings = response.data;
+    if (renderings.length === 0) {
+      return null;
+    }
+    return getRendering(renderings[0].id, company_id);
   } catch (error) {
     if (error instanceof ApiError && error.status === 404) {
       return null;
@@ -1771,11 +1780,19 @@ export async function getRenderingByBudget(
   company_id: string
 ): Promise<RenderingDetail | null> {
   try {
-    const queryParams = new URLSearchParams({ company_id });
-    const response = await apiClient.getPublic<RenderingDetail>(
-      `/renderings/budget/${budgetId}?${queryParams.toString()}`
+    const queryParams = new URLSearchParams({
+      company_id,
+      budget_id: budgetId,
+      limit: '1',
+    });
+    const response = await apiClient.getPublic<RenderingDetail[]>(
+      `/renderings/?${queryParams.toString()}`
     );
-    return response.data;
+    const renderings = response.data;
+    if (renderings.length === 0) {
+      return null;
+    }
+    return getRendering(renderings[0].id, company_id);
   } catch (error) {
     if (error instanceof ApiError && error.status === 404) {
       return null;
