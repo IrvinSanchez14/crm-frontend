@@ -1217,13 +1217,17 @@ export async function getVisit(
 export async function createVisit(
   visitData: VisitCreate,
   company_id: string,
-  created_by_user_id?: string
+  created_by_user_id?: string,
+  send_client_notification?: boolean
 ): Promise<Visit> {
   const queryParams = new URLSearchParams({ company_id });
   if (created_by_user_id) {
     queryParams.append('created_by_user_id', created_by_user_id);
   }
-  
+  if (send_client_notification) {
+    queryParams.append('send_client_notification', 'true');
+  }
+
   const response = await apiClient.postPublic<Visit, VisitCreate>(
     `/visits/?${queryParams.toString()}`,
     visitData
@@ -2101,4 +2105,88 @@ export async function setupCompany(data: CompanySetupRequest): Promise<CompanySe
     data
   );
   return response.data;
+}
+
+// ========== Reference Types ==========
+
+export interface Reference {
+  id: string;
+  client_name: string;
+  location: string;
+  project_description: string;
+  project_value: string;
+  phone: string | null;
+  display_order: number;
+  company_id: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ReferenceCreate {
+  client_name: string;
+  location: string;
+  project_description: string;
+  project_value: string;
+  phone?: string;
+  display_order?: number;
+  company_id: string;
+}
+
+export interface ReferenceUpdate {
+  client_name?: string;
+  location?: string;
+  project_description?: string;
+  project_value?: string;
+  phone?: string;
+  display_order?: number;
+}
+
+// ========== Reference API Functions ==========
+
+export async function getReferences(params: { company_id: string; skip?: number; limit?: number }): Promise<Reference[]> {
+  const queryParams = new URLSearchParams({ company_id: params.company_id });
+  if (params.skip !== undefined) queryParams.append('skip', params.skip.toString());
+  if (params.limit !== undefined) queryParams.append('limit', params.limit.toString());
+  const response = await apiClient.getPublic<Reference[]>(`/references/?${queryParams.toString()}`);
+  return response.data;
+}
+
+export async function createReference(data: ReferenceCreate): Promise<Reference> {
+  const response = await apiClient.postPublic<Reference, ReferenceCreate>('/references/', data);
+  return response.data;
+}
+
+export async function updateReference(id: string, data: ReferenceUpdate, company_id: string): Promise<Reference> {
+  const queryParams = new URLSearchParams({ company_id });
+  const response = await apiClient.putPublic<Reference, ReferenceUpdate>(`/references/${id}?${queryParams.toString()}`, data);
+  return response.data;
+}
+
+export async function deleteReference(id: string, company_id: string): Promise<void> {
+  const queryParams = new URLSearchParams({ company_id });
+  await apiClient.deletePublic(`/references/${id}?${queryParams.toString()}`);
+}
+
+export async function generateReferencePDF(company_id: string): Promise<{ blob: Blob; fileName: string }> {
+  const queryParams = new URLSearchParams({ company_id });
+  const response = await fetch(
+    `${API_BASE_URL}/references/pdf?${queryParams.toString()}`,
+    {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/pdf',
+      },
+    }
+  );
+
+  if (!response.ok) {
+    throw new ApiError(response.status, response.statusText, 'Failed to generate PDF');
+  }
+
+  const disposition = response.headers.get('Content-Disposition') || '';
+  const match = disposition.match(/filename=(.+?)(?:;|$)/);
+  const fileName = match ? match[1].replace(/['"]/g, '') : 'customer_reference.pdf';
+
+  const blob = await response.blob();
+  return { blob, fileName };
 }

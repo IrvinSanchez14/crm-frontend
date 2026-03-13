@@ -68,6 +68,7 @@ export function CreateVisitForm({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [projectError, setProjectError] = useState<string | null>(null);
+  const [sendNotification, setSendNotification] = useState(false);
   const [formData, setFormData] = useState({
     title: '',
     status: 'planning' as const,
@@ -139,7 +140,7 @@ export function CreateVisitForm({
         visit_time: formData.visit_time || undefined,
       };
 
-      await createVisit(visitData, companyId);
+      await createVisit(visitData, companyId, undefined, sendNotification);
 
       if (onSuccess) {
         onSuccess();
@@ -224,6 +225,18 @@ export function CreateVisitForm({
           disabled={loading}
           className="w-full px-3 py-2 border border-[color:var(--border)] rounded-lg bg-[color:var(--background)] text-[color:var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[color:var(--primary)]"
         />
+      </div>
+
+      <div className="flex items-center gap-2 pt-2">
+        <input
+          id="send_notification"
+          type="checkbox"
+          checked={sendNotification}
+          onChange={(e) => setSendNotification(e.target.checked)}
+          disabled={loading}
+          className="h-4 w-4 rounded border-[color:var(--border)] text-[color:var(--primary)] focus:ring-[color:var(--primary)]"
+        />
+        <Label htmlFor="send_notification">Send notification to client</Label>
       </div>
     </form>
   );

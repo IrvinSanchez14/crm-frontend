@@ -32,6 +32,7 @@
   "notes": "Notas",
   "attachments": "Adjuntos",
   "titleColumn": "Título",
+  "sendNotificationToClient": "Enviar notificación al cliente",
   "statusLabel": "Estado",
   "status": {
     "planning": "Planificación",

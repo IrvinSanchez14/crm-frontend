@@ -60,6 +60,9 @@ const BudgetReportPage = lazy(() =>
 const RenderingReportPage = lazy(() =>
   import('./features/reports').then((module) => ({ default: module.RenderingReportPage }))
 );
+const ReferenceReportPage = lazy(() =>
+  import('./features/reports').then((module) => ({ default: module.ReferenceReportPage }))
+);
 const SetupRequestPage = lazy(() =>
   import('./features/setup').then((module) => ({ default: module.SetupRequestPage }))
 );
@@ -207,6 +210,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <RenderingReportPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/reports/references"
+            element={
+              <ProtectedRoute>
+                <ReferenceReportPage />
               </ProtectedRoute>
             }
           />

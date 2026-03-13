@@ -20,5 +20,21 @@
   "loading": "Loading report...",
   "generatingPdf": "Generating PDF...",
   "pdfPreview": "PDF Preview",
-  "download": "Download"
+  "download": "Download",
+  "referenceReport": "Customer References",
+  "referenceReportDescription": "Manage customer references for your company portfolio",
+  "clientName": "Client Name",
+  "location": "Location",
+  "projectDescription": "Project Description",
+  "projectValue": "Project Value",
+  "phone": "Phone",
+  "addReference": "Add Reference",
+  "editReference": "Edit Reference",
+  "deleteReference": "Delete Reference",
+  "deleteConfirmation": "Are you sure you want to delete this reference?",
+  "noReferences": "No references found. Add your first reference.",
+  "downloadPdf": "Download PDF",
+  "referenceAdded": "Reference added successfully",
+  "referenceUpdated": "Reference updated successfully",
+  "referenceDeleted": "Reference deleted successfully"
 }

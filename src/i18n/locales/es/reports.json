@@ -20,5 +20,21 @@
   "loading": "Cargando reporte...",
   "generatingPdf": "Generando PDF...",
   "pdfPreview": "Vista Previa PDF",
-  "download": "Descargar"
+  "download": "Descargar",
+  "referenceReport": "Referencias de Clientes",
+  "referenceReportDescription": "Gestiona las referencias de clientes para el portafolio de tu empresa",
+  "clientName": "Nombre del Cliente",
+  "location": "Ubicación",
+  "projectDescription": "Descripción del Proyecto",
+  "projectValue": "Valor del Proyecto",
+  "phone": "Teléfono",
+  "addReference": "Agregar Referencia",
+  "editReference": "Editar Referencia",
+  "deleteReference": "Eliminar Referencia",
+  "deleteConfirmation": "¿Estás seguro de que quieres eliminar esta referencia?",
+  "noReferences": "No se encontraron referencias. Agrega tu primera referencia.",
+  "downloadPdf": "Descargar PDF",
+  "referenceAdded": "Referencia agregada exitosamente",
+  "referenceUpdated": "Referencia actualizada exitosamente",
+  "referenceDeleted": "Referencia eliminada exitosamente"
 }

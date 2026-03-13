@@ -178,6 +178,11 @@ export const Sidebar = memo<SidebarProps>(({ isOpen, onClose, className }) => {
           label: t('reports:renderingReport'),
           path: '/reports/renderings',
         },
+        {
+          id: 'reports-references',
+          label: t('reports:referenceReport'),
+          path: '/reports/references',
+        },
       ],
     },
   ];
