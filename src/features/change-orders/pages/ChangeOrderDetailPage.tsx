@@ -56,7 +56,7 @@ export function ChangeOrderDetailPage() {
   const getUserId = useCallback((): string | null => {
     if (!user?.access_token) return null;
     const payload = decodeJwt(user.access_token);
-    return payload?.user_id || null;
+    return (payload?.sub as string) || null;
   }, [user]);
 
   const fetchData = useCallback(async () => {

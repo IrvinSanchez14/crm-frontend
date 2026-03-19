@@ -64,7 +64,7 @@ export function CreateChangeOrderPage() {
   const getUserId = useCallback((): string | null => {
     if (!user?.access_token) return null;
     const payload = decodeJwt(user.access_token);
-    return payload?.user_id || null;
+    return (payload?.sub as string) || null;
   }, [user]);
 
   const fetchData = useCallback(async () => {
@@ -270,7 +270,7 @@ export function CreateChangeOrderPage() {
                     <option value="">{t('common:actions.select', 'Select a project')}</option>
                     {projects.map((p) => (
                       <option key={p.id} value={p.id}>
-                        {p.name} — {p.address || ''} ({p.client_name || ''})
+                        {p.name} — {p.address || ''} ({p.client?.name || ''})
                       </option>
                     ))}
                   </select>
