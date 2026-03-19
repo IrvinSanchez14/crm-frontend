@@ -32,6 +32,8 @@ import categoriesEn from './locales/en/categories.json';
 import categoriesEs from './locales/es/categories.json';
 import setupEn from './locales/en/setup.json';
 import setupEs from './locales/es/setup.json';
+import changeOrdersEn from './locales/en/changeOrders.json';
+import changeOrdersEs from './locales/es/changeOrders.json';
 
 // Supported languages
 export const SUPPORTED_LANGUAGES = ['en', 'es'] as const;
@@ -60,6 +62,7 @@ const resources = {
     reports: reportsEn,
     categories: categoriesEn,
     setup: setupEn,
+    changeOrders: changeOrdersEn,
   },
   es: {
     common: commonEs,
@@ -73,6 +76,7 @@ const resources = {
     reports: reportsEs,
     categories: categoriesEs,
     setup: setupEs,
+    changeOrders: changeOrdersEs,
   },
 } as const;
 

@@ -311,6 +311,16 @@ async function buildBudgetDoc(
     const items = category.budget_items;
     const sectionSubtotal = parseFloat(category.subtotal);
 
+    // Calculate profit markup ratio: when category has profit data,
+    // adjust item prices so the displayed subtotals reflect the final price (real + profit)
+    let profitRatio = 1;
+    if (category.category_profit) {
+      const itemsTotal = items.reduce((sum, item) => sum + parseFloat(item.subtotal), 0);
+      if (itemsTotal > 0) {
+        profitRatio = sectionSubtotal / itemsTotal;
+      }
+    }
+
     // Section header - simple row with number and section name
     const sectionRowStartY = yPosition;
     const sectionRowHeight = 6;
@@ -374,13 +384,15 @@ async function buildBudgetDoc(
       xPos += colWidths.unit + 2;
       doc.text(item.quantity.toString(), xPos, yPosition);
 
-      // Unit price
+      // Unit price (adjusted with profit if applicable)
       xPos += colWidths.quantity + 2;
-      doc.text(formatCurrency(item.unit_price), xPos, yPosition);
+      const displayUnitPrice = parseFloat(item.unit_price) * profitRatio;
+      doc.text(formatCurrency(displayUnitPrice), xPos, yPosition);
 
-      // Subtotal
+      // Subtotal (quantity × adjusted unit price)
       xPos += colWidths.unitPrice + 2;
-      doc.text(formatCurrency(item.subtotal), xPos, yPosition);
+      const displaySubtotal = parseFloat(item.quantity) * displayUnitPrice;
+      doc.text(formatCurrency(displaySubtotal), xPos, yPosition);
 
       yPosition += 4;
 

@@ -2167,6 +2167,272 @@ export async function deleteReference(id: string, company_id: string): Promise<v
   await apiClient.deletePublic(`/references/${id}?${queryParams.toString()}`);
 }
 
+/**
+ * Change Order interfaces
+ */
+export type ChangeOrderStatus =
+  | 'draft'
+  | 'pending_approval'
+  | 'accepted'
+  | 'rejected'
+  | 'applied';
+
+export interface ChangeOrderItem {
+  id: string;
+  change_order_id: string;
+  item_code: string | null;
+  description: string;
+  unit: string | null;
+  quantity: string;
+  unit_price: string;
+  subtotal: string;
+  order_index: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ChangeOrderDetail {
+  id: string;
+  title: string;
+  description: string | null;
+  observations: string[] | null;
+  order_number: number;
+  status: ChangeOrderStatus;
+  total_amount: string;
+  project_id: string;
+  accepted_by_user_id: string | null;
+  accepted_at: string | null;
+  applied_by_user_id: string | null;
+  applied_at: string | null;
+  created_by_user_id: string | null;
+  created_at: string;
+  updated_at: string;
+  change_order_items: ChangeOrderItem[];
+  accepted_by_name: string | null;
+  applied_by_name: string | null;
+  created_by_name: string | null;
+  project_name: string | null;
+  project_address: string | null;
+  client_name: string | null;
+  client_phone: string | null;
+  client_email: string | null;
+}
+
+export interface ChangeOrderItemCreate {
+  item_code?: string;
+  description: string;
+  unit?: string;
+  quantity: string;
+  unit_price: string;
+  subtotal?: string;
+  order_index?: number;
+}
+
+export interface ChangeOrderCreate {
+  title: string;
+  description?: string;
+  observations?: string[];
+  status?: ChangeOrderStatus;
+  project_id: string;
+  items?: ChangeOrderItemCreate[];
+}
+
+export interface ChangeOrderUpdate {
+  title?: string;
+  description?: string;
+  observations?: string[];
+  status?: ChangeOrderStatus;
+}
+
+export interface ChangeOrderItemUpdate {
+  item_code?: string;
+  description?: string;
+  unit?: string;
+  quantity?: string;
+  unit_price?: string;
+  subtotal?: string;
+  order_index?: number;
+}
+
+export interface ChangeOrdersListParams {
+  company_id: string;
+  project_id?: string;
+  status?: ChangeOrderStatus;
+  skip?: number;
+  limit?: number;
+}
+
+/**
+ * Change Order API methods
+ */
+export async function getChangeOrders(
+  params: ChangeOrdersListParams
+): Promise<{ change_orders: ChangeOrderDetail[]; total: number }> {
+  const { company_id, project_id, status, skip = 0, limit = 100 } = params;
+  const queryParams = new URLSearchParams({
+    company_id,
+    skip: skip.toString(),
+    limit: limit.toString(),
+  });
+  if (project_id) queryParams.append('project_id', project_id);
+  if (status) queryParams.append('status', status);
+
+  const response = await apiClient.getPublic<{ change_orders: ChangeOrderDetail[]; total: number }>(
+    `/change-orders/?${queryParams.toString()}`
+  );
+  return response.data;
+}
+
+export async function getChangeOrder(
+  changeOrderId: string,
+  company_id: string
+): Promise<ChangeOrderDetail> {
+  const queryParams = new URLSearchParams({ company_id });
+  const response = await apiClient.getPublic<ChangeOrderDetail>(
+    `/change-orders/${changeOrderId}?${queryParams.toString()}`
+  );
+  return response.data;
+}
+
+export async function createChangeOrder(
+  data: ChangeOrderCreate,
+  company_id: string,
+  created_by_user_id?: string
+): Promise<ChangeOrderDetail> {
+  const queryParams = new URLSearchParams({ company_id });
+  if (created_by_user_id) queryParams.append('created_by_user_id', created_by_user_id);
+
+  const response = await apiClient.postPublic<ChangeOrderDetail, ChangeOrderCreate>(
+    `/change-orders/?${queryParams.toString()}`,
+    data
+  );
+  return response.data;
+}
+
+export async function updateChangeOrder(
+  changeOrderId: string,
+  data: ChangeOrderUpdate,
+  company_id: string
+): Promise<ChangeOrderDetail> {
+  const queryParams = new URLSearchParams({ company_id });
+  const response = await apiClient.putPublic<ChangeOrderDetail, ChangeOrderUpdate>(
+    `/change-orders/${changeOrderId}?${queryParams.toString()}`,
+    data
+  );
+  return response.data;
+}
+
+export async function deleteChangeOrder(
+  changeOrderId: string,
+  company_id: string
+): Promise<void> {
+  const queryParams = new URLSearchParams({ company_id });
+  await apiClient.deletePublic(
+    `/change-orders/${changeOrderId}?${queryParams.toString()}`
+  );
+}
+
+export async function addChangeOrderItem(
+  changeOrderId: string,
+  itemData: ChangeOrderItemCreate,
+  company_id: string
+): Promise<ChangeOrderItem> {
+  const queryParams = new URLSearchParams({ company_id });
+  const response = await apiClient.postPublic<ChangeOrderItem, ChangeOrderItemCreate>(
+    `/change-orders/${changeOrderId}/items?${queryParams.toString()}`,
+    itemData
+  );
+  return response.data;
+}
+
+export async function updateChangeOrderItem(
+  changeOrderId: string,
+  itemId: string,
+  itemData: ChangeOrderItemUpdate,
+  company_id: string
+): Promise<ChangeOrderItem> {
+  const queryParams = new URLSearchParams({ company_id });
+  const response = await apiClient.putPublic<ChangeOrderItem, ChangeOrderItemUpdate>(
+    `/change-orders/${changeOrderId}/items/${itemId}?${queryParams.toString()}`,
+    itemData
+  );
+  return response.data;
+}
+
+export async function deleteChangeOrderItem(
+  changeOrderId: string,
+  itemId: string,
+  company_id: string
+): Promise<void> {
+  const queryParams = new URLSearchParams({ company_id });
+  await apiClient.deletePublic(
+    `/change-orders/${changeOrderId}/items/${itemId}?${queryParams.toString()}`
+  );
+}
+
+export async function acceptChangeOrder(
+  changeOrderId: string,
+  company_id: string,
+  accepted_by_user_id: string
+): Promise<ChangeOrderDetail> {
+  const queryParams = new URLSearchParams({ company_id, accepted_by_user_id });
+  const response = await apiClient.postPublic<ChangeOrderDetail, Record<string, never>>(
+    `/change-orders/${changeOrderId}/accept?${queryParams.toString()}`,
+    {}
+  );
+  return response.data;
+}
+
+export async function rejectChangeOrder(
+  changeOrderId: string,
+  company_id: string
+): Promise<ChangeOrderDetail> {
+  const queryParams = new URLSearchParams({ company_id });
+  const response = await apiClient.postPublic<ChangeOrderDetail, Record<string, never>>(
+    `/change-orders/${changeOrderId}/reject?${queryParams.toString()}`,
+    {}
+  );
+  return response.data;
+}
+
+export async function applyChangeOrder(
+  changeOrderId: string,
+  company_id: string,
+  applied_by_user_id: string
+): Promise<ChangeOrderDetail> {
+  const queryParams = new URLSearchParams({ company_id, applied_by_user_id });
+  const response = await apiClient.postPublic<ChangeOrderDetail, Record<string, never>>(
+    `/change-orders/${changeOrderId}/apply?${queryParams.toString()}`,
+    {}
+  );
+  return response.data;
+}
+
+export async function generateChangeOrderPDF(
+  changeOrderId: string,
+  company_id: string
+): Promise<{ blob: Blob; fileName: string }> {
+  const queryParams = new URLSearchParams({ company_id });
+  const response = await fetch(
+    `${API_BASE_URL}/change-orders/${changeOrderId}/pdf?${queryParams.toString()}`,
+    {
+      method: 'GET',
+      headers: { 'Accept': 'application/pdf' },
+    }
+  );
+
+  if (!response.ok) {
+    throw new ApiError(response.status, response.statusText, 'Failed to generate Change Order PDF');
+  }
+
+  const disposition = response.headers.get('Content-Disposition') || '';
+  const match = disposition.match(/filename=(.+?)(?:;|$)/);
+  const fileName = match ? match[1].replace(/['"]/g, '') : 'change_order.pdf';
+
+  const blob = await response.blob();
+  return { blob, fileName };
+}
+
 export async function generateReferencePDF(company_id: string): Promise<{ blob: Blob; fileName: string }> {
   const queryParams = new URLSearchParams({ company_id });
   const response = await fetch(

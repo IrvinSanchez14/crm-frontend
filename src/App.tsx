@@ -54,6 +54,15 @@ const RenderingDetailPage = lazy(() =>
 const CreateRenderingPage = lazy(() =>
   import('./features/renderings').then((module) => ({ default: module.CreateRenderingPage }))
 );
+const ChangeOrdersListPage = lazy(() =>
+  import('./features/change-orders').then((module) => ({ default: module.ChangeOrdersListPage }))
+);
+const ChangeOrderDetailPage = lazy(() =>
+  import('./features/change-orders').then((module) => ({ default: module.ChangeOrderDetailPage }))
+);
+const CreateChangeOrderPage = lazy(() =>
+  import('./features/change-orders').then((module) => ({ default: module.CreateChangeOrderPage }))
+);
 const BudgetReportPage = lazy(() =>
   import('./features/reports').then((module) => ({ default: module.BudgetReportPage }))
 );
@@ -170,6 +179,38 @@ function App() {
             element={
               <ProtectedRoute>
                 <BudgetDetailPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/change-orders"
+            element={
+              <ProtectedRoute>
+                <ChangeOrdersListPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/change-orders/create"
+            element={
+              <ProtectedRoute>
+                <CreateChangeOrderPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/change-orders/:id"
+            element={
+              <ProtectedRoute>
+                <ChangeOrderDetailPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/change-orders/:id/edit"
+            element={
+              <ProtectedRoute>
+                <CreateChangeOrderPage />
               </ProtectedRoute>
             }
           />
